@@ -8,6 +8,7 @@
 #include "CCreepUpgrader.js"
 
 #include "CCreepXWorker.js"
+#include "CCreepXUpgrader.js"
 
 #include "CCreepXGuard.js"
 #include "CCreepXHealer.js"
@@ -15,19 +16,22 @@
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.run = function() {
+    var body = this.memory.body;
     var role = this.memory.role;
-    if (role == 'harvester')        this.runHarvester();
+    if (role == 'harvester')        this.runDefaultHarvester();
     else if (role == 'builder')     this.runBuilder();
     else if (role == 'collector')   this.runCollector();
     else if (role == 'pionier')     this.runPionier();
     else if (role == 'repairer')    this.runRepairer();
-    else if (role == 'upgrader')    this.runUpgrader();
+    else if (role == 'upgrader')    this.runDefaultUpgrader();
 
-    else if (role == 'worker')      this.runWorker();
+    else if (body == BODY_HARVESTER) this.runHarvester();
+    else if (body == BODY_UPGRADER)  this.runUpgrader();
+    
+    else if (body == BODY_HEALER)   this.runHealer();
 
     else if (role == 'guard')       this.runGuard();
-    else if (role == 'healer')      this.runHealer();
-    else this.log("has no role");
+    else this.logError("has no role");
 }
 
 // ########### MOVE SECTION ###########################################
@@ -48,11 +52,11 @@ Creep.prototype.movePredefined = function(targetPos, opts, onPos) {
         && move.path[move.step].x == this.pos.x 
         && move.path[move.step].y == this.pos.y
     ) {
-        //this.log("next:" + (move.step + 1) + " last: "+ (move.path.length - 1));
+        //this.logCompact("next:" + (move.step + 1) + " last: "+ (move.path.length - 1));
         if (this.move(move.path[move.step + 1].direction) == OK) {
             ++ move.step;
         }
-        //this.log("use a predefined path - " + this.pos + "->" + targetPos); 
+        //this.logCompact("use a predefined path - " + this.pos + "->" + targetPos); 
     } else {
         // do not go the last move if onPos is not set
         if (!onPos && this.pos.inRangeTo(targetPos, 1)) {
@@ -76,8 +80,8 @@ Creep.prototype.moveRandom = function() {
 
 // ########### OTHER SECTION ###########################################
 
-Creep.prototype.log = function(message, isImportant) {
-    if (VERBOSE || isImportant) console.log('[' + this.name + "] in room " + this.room.name + " "+ message);
+Creep.prototype.logDetail = function(message) {
+    console.log('[' + this.name + "] in room " + this.room.name + " "+ message);
 }
 Creep.prototype.logError = function(message) {
     console.log('!!!ERROR!!! [' + this.name + "] in room " + this.room.name + " "+ message);

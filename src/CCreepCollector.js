@@ -3,25 +3,26 @@
 Creep.prototype.runCollector = function() {
     // is full
     if(this.energy == this.energyCapacity) {
-        var ext = this.pos.findClosestEmptyExtension();
-        if (
-            ext != null 
-            && this.room.defaultSpawn.energy == this.room.defaultSpawn.energyCapacity
-        ) {
-            this.movePredefined(ext.pos);
-            this.transferEnergy(ext)
-        } else {
-            this.movePredefined(this.room.defaultSpawn.pos);
-            this.transferEnergy(this.room.defaultSpawn);
-        }
+        this.memory.role = 'harvester';
+        this.memory.phase = PHASE_DELIVER;
+        return;
     // searches dropped energy
     } else {
-    	var target = this.pos.findClosest(FIND_DROPPED_ENERGY);
-    	if (target ) {
+    	var target = null;
+        if (this.memory.currentTargetId) {
+            target = Game.getObjectById(this.memory.currentTargetId);
+            if (target && target.constructor != Source) target = null;
+        } 
+        if (!target) {
+            target = this.pos.findClosest(this.room.energy);
+            if (target) this.memory.currentTargetId = target.id;
+        }
+        
+    	if (target) {
     			this.movePredefined(target.pos);
     			this.pickup(target);
 		} else {
-            this.memory.phase = 'search';
+            this.memory.phase = PHASE_SEARCH;
             this.moveAround();
 		}
 	}

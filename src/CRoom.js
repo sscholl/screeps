@@ -1,3 +1,5 @@
+#include "CRoomFind.js"
+
 // ######### Room #############################################################
 
 Room.prototype.run = function() {
@@ -6,14 +8,14 @@ Room.prototype.run = function() {
         TIMER_BEGIN_(TIMER_MODULE_ROOM, 'static_init', 'of room ' + this.name)
             this.memory.timer = -1;
             this.initSources();
-            this.initExtensions();
-            this.memory.timer = 500;
+            this.initStructures();
+            this.memory.timer = 600;
         TIMER_END(TIMER_MODULE_ROOM, 'static_init')
     }
 
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'load', 'of room ' + this.name)
         this.loadSources();
-        this.loadExtensions();
+        this.loadStructures();
         this.loadConstructions();
     TIMER_END(TIMER_MODULE_ROOM, 'load')
     
@@ -27,11 +29,13 @@ Room.prototype.run = function() {
 
 
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'actions', 'of room ' + this.name)
+        this.structuresAction();
+
         this.sourcesWorkerAction();
         this.collectorWorkerAction();
+        this.upgraderWorkerAction();
         this.constructionsWorkerAction();
         this.repairerWorkerAction();
-        this.upgraderWorkerAction();
 
         this.guardAction();
 
@@ -44,11 +48,15 @@ Room.prototype.run = function() {
 // ########### SOURCES SECTION ############################################
 Room.prototype.initSources = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'initSources', 'of room ' + this.name)
-    this.memory.sources         = {};
+    if (!this.memory.sources)
+        this.memory.sources = {};
     this.memory.sourceSpotCount = 0;
 
     for (var source of this.find(FIND_SOURCES)) {
-        this.memory.sources[source.id] = {id: source.id};
+        if (!this.memory.sources[source.id]) {
+            this.memory.sources[source.id] = {};
+            this.memory.sources[source.id].id = source.id;
+        }
         source.setMemory();
         source.initSpots();
     }
@@ -58,7 +66,6 @@ Room.prototype.initSources = function() {
     for (var hostileSpawnNr in this.memory.hostileSpawns) {
         this.memory.hostileSpawnIds[hostileSpawnNr] = this.memory.hostileSpawns[hostileSpawnNr].id;
     }
-    this.initDynamicSources();
     TIMER_END(TIMER_MODULE_ROOM, 'initSources')
 }
 Room.prototype.loadSources = function() {
@@ -75,12 +82,17 @@ Room.prototype.loadSources = function() {
     }
 }
 Room.prototype.initDynamicSources = function() {
+    this.memory.sourcesSaveCount = 0;
     for (var id in this.sources) {
         var source = this.sources[id];
 
         source.memory.isSave = (
                 this.creepsHealer.length >= 2 && this.creepsRanger.length >= 2
             ) || !source.memory.hasHostileSpawn;
+        if (source.memory.isSave) this.memory.sourcesSaveCount ++;
+
+        var link = source.pos.findInRangeLink(2);
+        if (link[0] != undefined) source.memory.linkId = link[0].id;
     }
 }
 Room.prototype.sourcesWorkerAction = function() {
@@ -88,26 +100,41 @@ Room.prototype.sourcesWorkerAction = function() {
     for (var id in this.sources) {
         var source = this.sources[id];
 
-
         if (source.memory.isSave) {
-            for (var i in source.memory.spots) {
-                var sourceSpot = source.memory.spots[i];
-
-                var creep = Game.creeps[sourceSpot.creepName];
-                // if creep not exists or has a wrong state, search a new harvester
-                if (   !creep 
-                    || creep.memory.harvesterSourceId != source.id
-                    || creep.memory.phase != 'harvest'
-                ) {
-                    if (creep) {
-                        delete sourceSpot.harvesterSourceId;
-                    }
-                    creep = source.pos.findClosestSearchingDefaultWorker();
-                    if (creep) {
-                        creep.memory.role = 'harvester';
-                        creep.memory.harvesterSourceId = source.id;
-                        creep.memory.phase = 'harvest';
-                        sourceSpot.creepName = creep.name;
+            var creep = Game.creeps[source.memory.creepName];
+            if (   !creep 
+                || creep.memory.harvesterSourceId != source.id
+                || creep.memory.phase != PHASE_HARVEST
+            ) {
+                if (creep) {
+                    delete source.memory.creepName;
+                }
+                creep = source.pos.findClosestSearchingWorker();
+                if (creep) {
+                    creep.memory.harvesterSourceId = source.id;
+                    creep.memory.phase = PHASE_HARVEST;
+                    source.memory.creepName = creep.name;
+                } else {
+                    for (var i in source.memory.spots) {
+                        var sourceSpot = source.memory.spots[i];
+                        creep = Game.creeps[sourceSpot.creepName];
+                        // if creep not exists or has a wrong state, search a new harvester
+                        if (   !creep 
+                            || creep.memory.harvesterSourceId != source.id
+                            || creep.memory.phase != PHASE_HARVEST
+                        ) {
+                            if (creep) {
+                                delete sourceSpot.creepName;
+                            }
+                            creep = source.pos.findClosestSearchingDefaultWorker();
+                            if (creep) {
+                                creep.memory.role = 'harvester';
+                                creep.memory.harvesterSourceId = source.id;
+                                creep.memory.phase = PHASE_HARVEST;
+                                sourceSpot.creepName = creep.name;
+                                this.logError("add a new default harvester for sourceSpot " + source.pos.x + " " + source.pos.y);
+                            }
+                        }
                     }
                 }
             }
@@ -118,7 +145,18 @@ Room.prototype.sourcesWorkerAction = function() {
 
 // ########### ENERGY SECTION ###########################################
 Room.prototype.collectorWorkerAction = function() {
-    var collectorCount = 2;
+    this.energy = this.findDroppedEnergy();
+
+    this.energyAmount = 0;
+    for (var i in this.energy) {
+        var energy = this.energy[i];
+        this.energyAmount += energy.energy;
+    }
+
+
+    var collectorCount = Math.round(this.energyAmount / 200) + 1;
+    if (collectorCount > this.creepsDefault.length / 2)
+        collectorCount = this.creepsDefault.length / 2;
 
     var creeps = this.find(FIND_MY_CREEPS, 
         { filter:
@@ -131,11 +169,13 @@ Room.prototype.collectorWorkerAction = function() {
 
     if (oldCollectorCount < collectorCount) {
         creeps = this.findSearchingDefaultWorker();
-        for(var i = oldCollectorCount; i < collectorCount; ++ i) {
+        for(var i = 0; i < collectorCount - oldCollectorCount; ++ i) {
             if (creeps[i]) {
                 creeps[i].memory.role = 'collector';
                 creeps[i].memory.phase = 'collect';
                 LOG_DETAIL_THIS("add a collector")
+            } else {
+                break;
             }
         }
     }
@@ -143,8 +183,13 @@ Room.prototype.collectorWorkerAction = function() {
 
 // ########### CONTROLLER SECTION ##########################################
 Room.prototype.upgraderWorkerAction = function() {
-    var upgraderCount = 8;
 
+    var creep = this.controller.pos.findClosestSearchingUpgrader();
+    if (creep) {
+        creep.memory.phase = PHASE_UPGRADE;
+    }
+
+    var upgraderCount = 5 + 1 - this.creepsUpgrader.length; //replace 5 with controller spots;
     var creeps = this.find(FIND_MY_CREEPS, 
         { filter:
             function (creep) {
@@ -167,7 +212,7 @@ Room.prototype.upgraderWorkerAction = function() {
 }
 
 // ########### EXTENSION SECTION #############################################
-Room.prototype.initExtensions = function() {
+Room.prototype.initStructures = function() {
     this.memory.extensionIds = [];
 
     this.extensions = this.find(
@@ -176,12 +221,28 @@ Room.prototype.initExtensions = function() {
     );
     for (var extensionNr in this.extensions)
         this.memory.extensionIds[extensionNr] = this.extensions[extensionNr].id;
+
+    var link = this.controller.pos.findInRangeLink(2);
+    if (link[0] != undefined) this.memory.controllerLinkId = link[0].id;
 }
-Room.prototype.loadExtensions = function() {
+Room.prototype.loadStructures = function() {
     this.extensions = [];
     for (var extensionNr in this.memory.extensionIds) {
         var extensionId = this.memory.extensionIds[extensionNr];
         this.extensions[extensionNr] = Game.getObjectById(extensionId);
+    }
+    this.controllerLink = Game.getObjectById(this.memory.controllerLinkId);
+}
+Room.prototype.structuresAction = function() {
+    for (var i in this.sources) {
+        var linkId = this.sources[i].memory.linkId;
+        if (linkId) {
+            var link = Game.getObjectById(linkId);
+            if (link.isFull() && this.controllerLink.isEmpty()) {
+                link.transferEnergy(this.controllerLink);
+                break; // do not transfer from 2 links at the same time
+            }
+        }
     }
 }
 
@@ -263,12 +324,13 @@ Room.prototype.repairerWorkerAction = function() {
 
 // ########### CREEPS SECTION #############################################
 Room.prototype.initCreeps = function() {
-    this.creepsDefault = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'default'}}});
-    this.creepsWorker = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'worker'}}});
-    this.creepsRanger = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'ranger'}}});
-    this.creepsHealer = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'healer'}}});
+    this.creepsDefault = this.find(FIND_MY_CREEPS, {filter: {memory: {body: BODY_DEFAULT}}});
+    this.creepsHarvester = this.find(FIND_MY_CREEPS, {filter: {memory: {body: BODY_HARVESTER}}});
+    this.creepsUpgrader = this.find(FIND_MY_CREEPS, {filter: {memory: {body: BODY_UPGRADER}}});
+    this.creepsRanger = this.find(FIND_MY_CREEPS, {filter: {memory: {body: BODY_RANGER}}});
+    this.creepsHealer = this.find(FIND_MY_CREEPS, {filter: {memory: {body: BODY_HEALER}}});
     //this.creeps = this.find(FIND_MY_CREEPS);
-    this.creeps = this.creepsDefault.concat(this.creepsWorker, this.creepsRanger, this.creepsHealer);
+    this.creeps = this.creepsDefault.concat(this.creepsHarvester, this.creepsUpgrader, this.creepsRanger, this.creepsHealer);
 }
 Room.prototype.guardAction = function() {
     for (rangerNr in this.creepsRanger) {
@@ -298,102 +360,32 @@ Room.prototype.spawnAction = function() {
                 && this.creepsDefault.length >= this.creepsRequiredAllWork()
                 && this.extensions.length >= 20
             ) {
-                bodyParts = [
-                    MOVE, MOVE, MOVE,  //4 * 50 = 200
-                    HEAL, HEAL, HEAL, HEAL, //4 * 200 = 800
-                    MOVE
-                ];
-                body = "healer";
-            } else if (//this.hostileSpawns.length <= 2 
+                spawn.spawnHealer();
+            } else if (
                 this.creepsRanger.length < this.hostileSpawns.length * 4
-                && this.creepsDefault.length >= this.creepsRequiredAllWork() 
-                && this.extensions.length >= 40
-            ) {
-                bodyParts = [
-                    TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, 
-                    TOUGH, TOUGH, TOUGH, TOUGH, 
-                    // 9 * 10 = 90
-                    MOVE, MOVE, MOVE, MOVE, MOVE,  
-                    MOVE, MOVE, MOVE, MOVE,   //9 * 50 = 450
-                    RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, 
-                    RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-                    RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, //11 * 150 = 1650
-                    MOVE // 50
-                ]; // sum = 2240
-                body = "ranger";
-            } else if (//this.hostileSpawns.length <= 2 
-                this.creepsRanger.length < this.hostileSpawns.length * 4
-                && this.creepsDefault.length >= this.creepsRequiredAllWork() 
-                && this.extensions.length >= 30
-            ) {
-                bodyParts = [
-                    TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, 
-                    TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
-                    TOUGH, TOUGH, TOUGH, // 13 * 10 = 130
-                    MOVE, MOVE, MOVE, MOVE, MOVE,  
-                    MOVE, MOVE, MOVE, MOVE,   //9 * 50 = 450
-                    RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, 
-                    RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, //7 * 150 = 1150
-                    MOVE
-                ]; // sum = 1630
-                body = "ranger";
-            } else if (this.hostileSpawns.length <= 2 
-                && this.creepsRanger.length < this.hostileSpawns.length * 4
                 && this.creepsDefault.length >= this.creepsRequiredAllWork() 
                 && this.extensions.length >= 20
             ) {
-                bodyParts = [
-                    TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
-                    TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
-                    MOVE, MOVE, MOVE, MOVE, MOVE,  //5 * 50 = 250
-                    RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, //5 * 150 = 750
-                    MOVE
-                ];
-                body = "ranger";
+                spawn.spawnRanger();
             } else if (this.creepsDefault.length < this.creepsRequiredAllWork() * 2) { // need additional workers
 
-                if (false && 
-                    this.creepsDefault.length >= this.creepsRequired() / 1
-                    && this.creepsWorker.length < this.spawns.length
-                    && this.extensions.length >= 14
+                if ( this.creepsDefault.length >= 8
+                    && this.creepsHarvester.length < this.memory.sourcesSaveCount
+                    && this.extensions.length >= 5
                 ) {
-                    bodyParts = [
-                        WORK, WORK, WORK, WORK, WORK, 
-                        CARRY, CARRY, CARRY, CARRY, CARRY,
-                        MOVE, MOVE, MOVE, MOVE, MOVE
-                    ];
-                    body = "worker";
-                } else if (this.creepsDefault.length >= this.creepsRequired() / 1 && this.extensions.length >= 7) {
-                    bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
-                    body = "default";
-                } else if (this.creepsDefault.length >= this.creepsRequired() / 1.5 && this.extensions.length >= 6) {
-                    bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
-                    body = "default";
-                } else if (this.creepsDefault.length >= this.creepsRequired() / 2 && this.extensions.length >= 2) {
-                    bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
-                    body = "default";
-                } else if (this.creepsDefault.length >= this.creepsRequired() / 3) {
-                    bodyParts = [WORK, CARRY, MOVE, MOVE];
-                    body = "default";
+                    spawn.spawnHarvester();
+                } else if ( this.controllerLink
+                    && this.creepsDefault.length >= 8
+                    && this.creepsUpgrader.length < this.controller.level - 4
+                    && this.extensions.length >= 23
+                ) {
+                    spawn.spawnUpgrader();
                 } else {
-                    bodyParts = [WORK, CARRY, MOVE];
-                    body = "default";
+                    spawn.spawnDefault();
                 }
 
             } else {
-                this.logCompact("no creep is required");
-            }
-
-            var result = spawn.createCreep(bodyParts);
-            if(_.isString(result)) {
-                this.logCompact('Spawning: ' + result + " with Body: " + bodyParts + " / new sum: " + (this.creeps.length + 1));
-                if (body == "default") Memory.creeps[result].role = 'harvester';
-                if (body == "ranger") Memory.creeps[result].role = 'guard';
-                if (body == "healer") Memory.creeps[result].role = 'healer';
-                Memory.creeps[result].body = body;
-            } else {
-                //if (result != ERR_BUSY)
-                //    console.log('Spawn error: ' + result);
+                this.logCompact('SPAWN: no creep is required');
             }
         }
     }

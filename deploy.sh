@@ -9,4 +9,4 @@ fi
 gcc -E -P -xc src/main.js -o bin/main.js $PARAMS ${2}
 gcc -E -P -xc src/CManagerGame.js -o bin/CManagerGame.js $PARAMS ${2}
 
-grunt screeps
+grunt screeps 

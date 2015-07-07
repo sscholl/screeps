@@ -2,7 +2,7 @@
 
 Creep.prototype.runPionier = function() {
     if (this.room.defaultSpawn) {
-        this.memory.phase = 'search';
+        this.memory.phase = PHASE_SEARCH;
     }
 
     var empty   = this.energy <= 0;

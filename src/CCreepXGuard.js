@@ -1,9 +1,8 @@
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runGuard = function() {
-
         
-    if(this.memory.body == 'ranger') {
+    if(this.memory.body == BODY_RANGER) {
     	if (this.room.creepsHealer.length >= 2 && this.room.creepsRanger.length >= 2) {
 	    	var target = this.pos.findClosest(this.room.getHostileCreeps());
 	    	//target = target[0];

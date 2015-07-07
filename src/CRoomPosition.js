@@ -28,20 +28,36 @@ RoomPosition.prototype.findClosestEnergyContainer = function(opts) {
     else                                        console.log("error while findng a energy source");
 };
 
-RoomPosition.prototype.findClosestSearchingDefaultWorker = function(opts) {
+RoomPosition.prototype.findInRangeLink = function(range) {
+    return this.findInRange(FIND_MY_STRUCTURES, range, {
+        filter: function(object) {return object.structureType == STRUCTURE_LINK}
+    });
+};
+
+RoomPosition.prototype.findClosestSearchingDefaultWorker = function() {
     return this.findClosest(FIND_MY_CREEPS, 
         { filter:
             function (creep) {
-                return creep.memory.body == 'default' && creep.memory.phase == 'search';
+                return creep.memory.body == BODY_DEFAULT && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
             }
         }
     );
 }
-
-Room.prototype.findSearchingDefaultWorker = function(opts) {
-    return this.find(FIND_MY_CREEPS, { filter:
-        function (creep) {
-            return creep.memory.body == 'default' && creep.memory.phase == 'search' 
+RoomPosition.prototype.findClosestSearchingWorker = function() {
+    return this.findClosest(FIND_MY_CREEPS, 
+        { filter:
+            function (creep) {
+                return creep.memory.body == BODY_HARVESTER && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
+            }
         }
-    });
+    );
+}
+RoomPosition.prototype.findClosestSearchingUpgrader = function() {
+    return this.findClosest(FIND_MY_CREEPS, 
+        { filter:
+            function (creep) {
+                return creep.memory.body == BODY_UPGRADER && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
+            }
+        }
+    );
 }

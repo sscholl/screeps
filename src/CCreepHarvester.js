@@ -1,6 +1,6 @@
 // ########### GENERAL SECTION #########################################
 
-Creep.prototype.runHarvester = function() {
+Creep.prototype.runDefaultHarvester = function() {
     var empty   = this.energy <= 0;
     var full    = this.energy >= this.energyCapacity;
     var phase   = this.memory.phase;
@@ -17,8 +17,7 @@ Creep.prototype.runHarvester = function() {
     
 	if (this.memory.phase == PHASE_SEARCH) {
         delete this.memory.harvesterSourceId;
-        if (this.room.name == "W12S2") this.movePredefined(Game.rooms.W12S3);
-        else                            this.moveAround();
+        this.moveAround();
     }
     if (this.memory.phase == PHASE_HARVEST) {
 		var source = this.room.sources[this.memory.harvesterSourceId];
@@ -35,11 +34,11 @@ Creep.prototype.runHarvester = function() {
             this.movePredefined(ext.pos);
             this.transferEnergy(ext)
         } else {
-            if (this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity) {
+            if (this.room.defaultSpawn.energy < this.room.defaultSpawn.energyCapacity) {
                 this.movePredefined(this.room.defaultSpawn.pos);
                 this.transferEnergy(this.room.defaultSpawn);
             } else {
-                this.memory.role = 'builder';
+                this.memory.phase = PHASE_SEARCH;
             }
         }
 	}

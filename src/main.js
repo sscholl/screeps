@@ -1,6 +1,7 @@
 //######## Include Debug ######################################################
 
 #include "debug.h"
+#include "constants.h"
 
 #if DEBUG
 	console.log('===============================================' + Game.time +
@@ -10,6 +11,8 @@
 TIMER_BEGIN(TIMER_MODULE_MAIN, 'main')
 
 // ######## Include prototype extension of classes ############################
+#include "CSpawn.js"
+#include "CStructure.js"
 #include "CSource.js"
 #include "CRoomPosition.js"
 #include "CCreep.js"

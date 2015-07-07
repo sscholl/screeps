@@ -6,7 +6,7 @@ Creep.prototype.runBuilder = function() {
             this.movePredefined(this.room.defaultSpawn.pos, {ignoreCreeps: true});
             this.room.defaultSpawn.transferEnergy(this);
         } else {
-            this.memory.phase = 'search';
+            this.memory.phase = PHASE_SEARCH;
             this.moveAround();
         }
     } else {
