@@ -15,3 +15,19 @@ Room.prototype.findSearchingDefaultWorker = function() {
         }
     });
 }
+
+Room.prototype.findSearchingDefaultWorkerEmpty = function() {
+    return this.find(FIND_MY_CREEPS, { filter:
+        function (creep) {
+            return creep.memory.body == BODY_DEFAULT && creep.memory.phase == PHASE_SEARCH && creep.energy <= creep.energyCapacity / 2
+        }
+    });
+}
+
+Room.prototype.findSearchingDefaultWorkerFull = function() {
+    return this.find(FIND_MY_CREEPS, { filter:
+        function (creep) {
+            return creep.memory.body == BODY_DEFAULT && creep.memory.phase == PHASE_SEARCH && creep.energy > creep.energyCapacity / 2
+        }
+    });
+}

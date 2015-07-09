@@ -42,3 +42,9 @@ Creep.prototype.runDefault = function() {
         }
 	}
 }
+
+Creep.prototype.changeCollector = function() {
+    this.memory.role = 'collector';
+    this.memory.phase = 'collect';
+    LOG_DETAIL_THIS("add a collector")
+}

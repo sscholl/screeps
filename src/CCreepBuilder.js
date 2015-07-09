@@ -20,8 +20,7 @@ Creep.prototype.runBuilder = function() {
                 if (result != ERR_INVALID_TARGET) this.logError(this.name + " can't build " + result);
             }
         } else {
-            this.memory.role = "repairer";
-            this.memory.phase = "repair";
+            this.memory.phase = PHASE_SEARCH;
         }
     }
 }

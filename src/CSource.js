@@ -30,8 +30,6 @@ Source.prototype.initSpots = function() {
                     isFree = false;
 
             if (isFree) {
-                ++ this.room.memory.sourceSpotCount;
-
                 this.memory.spots.push(
                     {sourceId: this.id, x:x, y:y}
                 );

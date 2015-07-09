@@ -8,8 +8,8 @@ Spawn.prototype.spawn = function(body, bodyParts) {
         if (body == BODY_RANGER) Memory.creeps[result].role = 'guard';
         Memory.creeps[result].body = body;
     } else {
-        //if (result != ERR_BUSY)
-        //    console.log('Spawn error: ' + result);
+        if (result != ERR_BUSY)
+            this.room.logCompact('Spawn error: ' + result + ' while try to spawn ' + JSON.stringify(bodyParts));
     }
 }
 
@@ -25,6 +25,11 @@ Spawn.prototype.spawnDefault = function() {
         && this.room.extensions.length >= 6
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
+    } else if (
+        this.room.creepsDefault.length >= this.room.creepsRequired() / 1.75 
+        && this.room.extensions.length >= 4
+    ) {
+        bodyParts = [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 2 
         && this.room.extensions.length >= 2

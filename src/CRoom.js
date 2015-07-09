@@ -8,7 +8,6 @@ Room.prototype.run = function() {
         TIMER_BEGIN_(TIMER_MODULE_ROOM, 'static_init', 'of room ' + this.name)
             this.memory.timer = -1;
             this.initSources();
-            this.initStructures();
             this.memory.timer = 600;
         TIMER_END(TIMER_MODULE_ROOM, 'static_init')
     }
@@ -24,6 +23,7 @@ Room.prototype.run = function() {
         TIMER_BEGIN_(TIMER_MODULE_ROOM, 'dynamic_init', 'of room ' + this.name)
             this.initDynamicSources();
             this.initDynamicConstructions();
+            this.initDynamicStructures();
         TIMER_END(TIMER_MODULE_ROOM, 'dynamic_init')
     }
 
@@ -33,8 +33,8 @@ Room.prototype.run = function() {
 
         this.sourcesWorkerAction();
         this.collectorWorkerAction();
-        this.upgraderWorkerAction();
         this.constructionsWorkerAction();
+        this.upgraderWorkerAction();
         this.repairerWorkerAction();
 
         this.guardAction();
@@ -50,7 +50,6 @@ Room.prototype.initSources = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'initSources', 'of room ' + this.name)
     if (!this.memory.sources)
         this.memory.sources = {};
-    this.memory.sourceSpotCount = 0;
 
     for (var source of this.find(FIND_SOURCES)) {
         if (!this.memory.sources[source.id]) {
@@ -83,13 +82,17 @@ Room.prototype.loadSources = function() {
 }
 Room.prototype.initDynamicSources = function() {
     this.memory.sourcesSaveCount = 0;
+    this.memory.sourceSpotCount = 0;
     for (var id in this.sources) {
         var source = this.sources[id];
 
         source.memory.isSave = (
                 this.creepsHealer.length >= 2 && this.creepsRanger.length >= 2
             ) || !source.memory.hasHostileSpawn;
-        if (source.memory.isSave) this.memory.sourcesSaveCount ++;
+        if (source.memory.isSave) {
+            this.memory.sourcesSaveCount ++;
+            this.memory.sourceSpotCount += source.memory.spots.length;
+        }
 
         var link = source.pos.findInRangeLink(2);
         if (link[0] != undefined) source.memory.linkId = link[0].id;
@@ -147,7 +150,7 @@ Room.prototype.sourcesWorkerAction = function() {
 Room.prototype.collectorWorkerAction = function() {
     this.energy = this.findDroppedEnergy();
 
-    this.energyAmount = 0;
+    this.energyAmount = this.creepsHarvester.length;
     for (var i in this.energy) {
         var energy = this.energy[i];
         this.energyAmount += energy.energy;
@@ -168,12 +171,10 @@ Room.prototype.collectorWorkerAction = function() {
     var oldCollectorCount = creeps.length;
 
     if (oldCollectorCount < collectorCount) {
-        creeps = this.findSearchingDefaultWorker();
+        creeps = this.findSearchingDefaultWorkerEmpty();
         for(var i = 0; i < collectorCount - oldCollectorCount; ++ i) {
             if (creeps[i]) {
-                creeps[i].memory.role = 'collector';
-                creeps[i].memory.phase = 'collect';
-                LOG_DETAIL_THIS("add a collector")
+                creeps[i].changeCollector();
             } else {
                 break;
             }
@@ -189,7 +190,7 @@ Room.prototype.upgraderWorkerAction = function() {
         creep.memory.phase = PHASE_UPGRADE;
     }
 
-    var upgraderCount = 5 + 1 - this.creepsUpgrader.length; //replace 5 with controller spots;
+    var upgraderCount = this.getDefaultUpgraderCount() - this.creepsUpgrader.length; //replace 5 with controller spots
     var creeps = this.find(FIND_MY_CREEPS, 
         { filter:
             function (creep) {
@@ -200,11 +201,12 @@ Room.prototype.upgraderWorkerAction = function() {
     var oldUpgraderCount = creeps.length;
 
     if (oldUpgraderCount < upgraderCount) {
-        creeps = this.findSearchingDefaultWorker();
-        for(var i = oldUpgraderCount; i < upgraderCount; ++ i) {
+        creeps = this.findSearchingDefaultWorkerFull();
+        if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
+        for(var i = 0; i < upgraderCount - oldUpgraderCount; ++ i) {
             if (creeps[i]) {
-                creeps[i].memory.role = 'upgrader';
-                creeps[i].memory.phase = 'upgrade';
+                creeps[i].memory.role = BODY_UPGRADER;
+                creeps[i].memory.phase = PHASE_UPGRADE;
                 LOG_DETAIL_THIS("add a upgrader " + creeps[i].name)
             }
         }
@@ -212,7 +214,7 @@ Room.prototype.upgraderWorkerAction = function() {
 }
 
 // ########### EXTENSION SECTION #############################################
-Room.prototype.initStructures = function() {
+Room.prototype.initDynamicStructures = function() {
     this.memory.extensionIds = [];
 
     this.extensions = this.find(
@@ -251,49 +253,44 @@ Room.prototype.initDynamicConstructions = function() {
     this.memory.constructionIds = [];
 
     this.constructions = this.find(FIND_CONSTRUCTION_SITES);
-    for (var constructionNr in this.constructions)
-        this.memory.constructionIds[constructionNr] = this.constructions[constructionNr].id;
+    for (var i in this.constructions)
+        this.memory.constructionIds[i] = this.constructions[i].id;
 }
 Room.prototype.loadConstructions = function() {
     this.constructions = [];
-    for (var constructionNr in this.memory.constructions) {
-        var constructionID = this.memory.constructionIds[constructionNr];
-        this.constructions[constructionNr] = Game.getObjectById(constructionId);
+    for (var i in this.memory.constructionIds) {
+        this.constructions[i] = (Game.getObjectById(this.memory.constructionIds[i]));
     }
 }
 Room.prototype.constructionsWorkerAction = function() {
     var builderCount = 0.0;
-    for (var constructionNr in this.constructions) {
-        var construction = this.constructions[constructionNr];
-
-        switch (construction.structureType) {
-            case STRUCTURE_ROAD:
-                builderCount += 0.2;
-                break; 
-            case STRUCTURE_EXTENSION:
-                ++ builderCount;
-                break;
-            default: ++ builderCount;
-                break;
+    for (var i in this.constructions) {
+        var construction = this.constructions[i];
+        if (construction) {
+            switch (construction.structureType) {
+                case STRUCTURE_ROAD:      builderCount += 0.2;
+                    break; 
+                case STRUCTURE_EXTENSION: ++ builderCount;
+                    break;
+                default:                  ++ builderCount;
+                    break;
+            }
         }
     }
 
     var creeps = this.find(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.role == 'builder'
-            }
-        }
+        { filter: function (creep) { return creep.memory.role == 'builder' } }
     );
     var oldBuildersCount = creeps.length;
 
     if (oldBuildersCount < builderCount) {
-        creeps = this.findSearchingDefaultWorker();
-        for(var i = oldBuildersCount; i < builderCount; ++ i) {
+        creeps = this.findSearchingDefaultWorkerFull();
+        if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
+        for(var i = 0; i < builderCount - oldBuildersCount; ++ i) {
             if (creeps[i]) {
                 creeps[i].memory.role = 'builder';
                 creeps[i].memory.phase = 'build';
-                LOG_DETAIL_THIS("add a builder")
+                LOG_DETAIL_THIS("add a builder " + creeps[i].name)
             }
         }
     }
@@ -311,12 +308,13 @@ Room.prototype.repairerWorkerAction = function() {
     var oldRepairersCount = creeps.length;
 
     if (oldRepairersCount < repairerCount) {
-        creeps = this.findSearchingDefaultWorker();
-        for(var i = oldRepairersCount; i < repairerCount; ++ i) {
+        creeps = this.findSearchingDefaultWorkerFull();
+        if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
+        for(var i = 0; i < repairerCount - oldRepairersCount; ++ i) {
             if (creeps[i]) {
                 creeps[i].memory.role = 'repairer';
                 creeps[i].memory.phase = 'repair';
-                LOG_DETAIL_THIS("add a repairer")
+                LOG_DETAIL_THIS("add a repairer " + creeps[i].name)
             }
         }
     }
@@ -339,11 +337,26 @@ Room.prototype.guardAction = function() {
             creep.memory.hostileSpawnNr = rangerNr % this.hostileSpawns.length;
     }
 }
+Room.prototype.getDefaultHarvesterCount = function() {
+    if (this.defaultHarvesterCount == undefined) {
+        this.defaultHarvesterCount = 0;
+        for (var id in this.sources) {
+            var source = this.sources[id];
+            if (source.memory.isSave)
+                if (source.memory.creepName) ++ this.defaultHarvesterCount;
+                else this.defaultHarvesterCount += source.memory.spots.length;
+        }
+    }
+    return this.defaultHarvesterCount;
+}
+Room.prototype.getDefaultUpgraderCount = function() {
+    return 4;
+}
 Room.prototype.creepsRequired = function() {
-    return this.memory.sourceSpotCount * 1.2;
+    return this.getDefaultHarvesterCount();
 }
 Room.prototype.creepsRequiredAllWork = function() {
-    return this.memory.sourceSpotCount + Object.keys(this.memory.sources).length + 1 + 2; //add upgrader, builder, repairer, collector
+    return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 2 + 2; //harvester, upgrader, builder, repairer, collector
 }
 
 // ########### SPAWN SECTION ############################################
@@ -351,42 +364,30 @@ Room.prototype.spawnAction = function() {
     for (var spawnId in this.spawns) {
         var spawn = this.spawns[spawnId];
 
-        if (spawn.energy >= 0 || this.creepsDefault.length < this.creepsRequired()) {
-            var bodyParts;
-            var body;
-            if (//this.hostileSpawns.length <= 2 
-                this.creepsHealer.length < this.hostileSpawns.length * 2
-                && this.creepsRanger.length >= 4
-                && this.creepsDefault.length >= this.creepsRequiredAllWork()
-                && this.extensions.length >= 20
-            ) {
-                spawn.spawnHealer();
-            } else if (
-                this.creepsRanger.length < this.hostileSpawns.length * 4
-                && this.creepsDefault.length >= this.creepsRequiredAllWork() 
-                && this.extensions.length >= 20
-            ) {
-                spawn.spawnRanger();
-            } else if (this.creepsDefault.length < this.creepsRequiredAllWork() * 2) { // need additional workers
-
-                if ( this.creepsDefault.length >= 8
-                    && this.creepsHarvester.length < this.memory.sourcesSaveCount
-                    && this.extensions.length >= 5
-                ) {
-                    spawn.spawnHarvester();
-                } else if ( this.controllerLink
-                    && this.creepsDefault.length >= 8
-                    && this.creepsUpgrader.length < this.controller.level - 4
-                    && this.extensions.length >= 23
-                ) {
-                    spawn.spawnUpgrader();
-                } else {
-                    spawn.spawnDefault();
-                }
-
-            } else {
-                this.logCompact('SPAWN: no creep is required');
-            }
+        var bodyParts;
+        var body;
+        if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
+            spawn.spawnDefault();
+        } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2
+            && this.creepsRanger.length > this.hostileSpawns.length
+            && this.extensions.length >= 20
+        ) {
+            spawn.spawnHealer();
+        } else if ( this.creepsRanger.length < this.hostileSpawns.length * 4
+            && this.extensions.length >= 20
+        ) {
+            spawn.spawnRanger();
+        } else if ( this.creepsHarvester.length < this.memory.sourcesSaveCount
+            && this.extensions.length >= 8
+        ) {
+            spawn.spawnHarvester();
+        } else if ( this.controllerLink
+            && this.creepsUpgrader.length < this.controller.level - 4
+            && this.extensions.length >= 23
+        ) {
+            spawn.spawnUpgrader();
+        } else {
+            this.logCompact('SPAWN: no creep is required');
         }
     }
 }

@@ -7,7 +7,7 @@
 #include "CCreepRepairer.js"
 #include "CCreepUpgrader.js"
 
-#include "CCreepXWorker.js"
+#include "CCreepXHarvester.js"
 #include "CCreepXUpgrader.js"
 
 #include "CCreepXGuard.js"
@@ -27,10 +27,8 @@ Creep.prototype.run = function() {
 
     else if (body == BODY_HARVESTER) this.runHarvester();
     else if (body == BODY_UPGRADER)  this.runUpgrader();
-    
     else if (body == BODY_HEALER)   this.runHealer();
-
-    else if (role == 'guard')       this.runGuard();
+    else if (body == BODY_RANGER)       this.runRanger();
     else this.logError("has no role");
 }
 
@@ -81,7 +79,7 @@ Creep.prototype.moveRandom = function() {
 // ########### OTHER SECTION ###########################################
 
 Creep.prototype.logDetail = function(message) {
-    console.log('[' + this.name + "] in room " + this.room.name + " "+ message);
+    console.log('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
 }
 Creep.prototype.logError = function(message) {
     console.log('!!!ERROR!!! [' + this.name + "] in room " + this.room.name + " "+ message);

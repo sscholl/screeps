@@ -8,8 +8,7 @@ Creep.prototype.runDefaultUpgrader = function() {
            this.movePredefined(energyContainer.pos);
     	   energyContainer.transferEnergy(this);
         } else {
-            this.memory.phase = 'collect';
-            this.memory.role = 'collector';
+            this.memory.phase = PHASE_SEARCH;
         }
     } else {
 	    this.movePredefined(this.room.controller.pos);

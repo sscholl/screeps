@@ -11,16 +11,17 @@ Creep.prototype.runCollector = function() {
     	var target = null;
         if (this.memory.currentTargetId) {
             target = Game.getObjectById(this.memory.currentTargetId);
-            if (target && target.constructor != Source) target = null;
+            if (target && target.constructor != Energy) target = null;
         } 
         if (!target) {
-            target = this.pos.findClosest(this.room.energy);
+            var i = Math.floor(Math.random() * this.room.energy.length);
+            target = this.room.energy[i];
             if (target) this.memory.currentTargetId = target.id;
         }
         
     	if (target) {
-    			this.movePredefined(target.pos);
-    			this.pickup(target);
+			this.movePredefined(target.pos);
+			this.pickup(target);
 		} else {
             this.memory.phase = PHASE_SEARCH;
             this.moveAround();
