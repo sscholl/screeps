@@ -2,7 +2,7 @@
 
 Creep.prototype.runCollector = function() {
     // is full
-    if(this.energy == this.energyCapacity) {
+    if(this.energy >= this.energyCapacity * 0.9) {
         this.memory.role = 'harvester';
         this.memory.phase = PHASE_DELIVER;
         return;

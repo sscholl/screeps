@@ -366,10 +366,15 @@ Room.prototype.spawnAction = function() {
 
         var bodyParts;
         var body;
-        if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
+        if ( this.creepsDefault.length > this.creepsRequired()
+            && this.creepsHarvester.length < this.memory.sourcesSaveCount
+            && this.extensions.length >= 8
+        ) {
+            spawn.spawnHarvester();
+        } else if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
             spawn.spawnDefault();
         } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2
-            && this.creepsRanger.length > this.hostileSpawns.length
+            && (this.creepsHealer.length < 2 || this.creepsRanger.length > this.hostileSpawns.length)
             && this.extensions.length >= 20
         ) {
             spawn.spawnHealer();
@@ -377,10 +382,6 @@ Room.prototype.spawnAction = function() {
             && this.extensions.length >= 20
         ) {
             spawn.spawnRanger();
-        } else if ( this.creepsHarvester.length < this.memory.sourcesSaveCount
-            && this.extensions.length >= 8
-        ) {
-            spawn.spawnHarvester();
         } else if ( this.controllerLink
             && this.creepsUpgrader.length < this.controller.level - 4
             && this.extensions.length >= 23
@@ -389,6 +390,7 @@ Room.prototype.spawnAction = function() {
         } else {
             this.logCompact('SPAWN: no creep is required');
         }
+        break; // todo: multispawn problem quickfix
     }
 }
 
