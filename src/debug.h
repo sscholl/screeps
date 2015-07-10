@@ -29,7 +29,7 @@
 
 	#define LOG_DETAIL(text) logDetail(text);
 	#define LOG_DETAIL_THIS(text) this.logDetail(text);
-	#define DEBUG_LOG(variable) logDetail(JSON.stringify(variable));
+	#define LOG_DEBUG(variable) logDetail(JSON.stringify(variable));
 #else
 	function logCompact(text) { console.log(text); }
 	function logDetail(text) {}
@@ -37,7 +37,7 @@
 
 	#define LOG_DETAIL(text)
 	#define LOG_DETAIL_THIS(text)
-	#define DEBUG_LOG(variable) 
+	#define LOG_DEBUG(variable) 
 #endif
 
 #if TIMER && DEBUG

@@ -109,7 +109,7 @@ Room.prototype.sourcesWorkerAction = function() {
                 || creep.memory.harvesterSourceId != source.id
                 || creep.memory.phase != PHASE_HARVEST
             ) {
-                if (creep) {
+                if (!creep) {
                     delete source.memory.creepName;
                 }
                 creep = source.pos.findClosestSearchingWorker();

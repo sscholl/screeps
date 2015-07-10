@@ -338,7 +338,7 @@ Creep.prototype.runBuilder = function() {
 
 Creep.prototype.runCollector = function() {
 
-    if(this.energy >= this.energyCapacity * 0.9) {
+    if(this.energy >= this.energyCapacity * 0.8) {
         this.memory.role = 'harvester';
         this.memory.phase = 'deliver';
         return;
@@ -938,7 +938,7 @@ Room.prototype.sourcesWorkerAction = function() {
                 || creep.memory.harvesterSourceId != source.id
                 || creep.memory.phase != 'harvest'
             ) {
-                if (creep) {
+                if (!creep) {
                     delete source.memory.creepName;
                 }
                 creep = source.pos.findClosestSearchingWorker();
