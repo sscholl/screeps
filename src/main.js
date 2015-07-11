@@ -10,6 +10,9 @@
 
 TIMER_BEGIN(TIMER_MODULE_MAIN, 'main')
 
+// ######## Include new own classes ###########################################
+#include "CTask.js"
+#include "CTasks.js"
 // ######## Include prototype extension of classes ############################
 #include "CSpawn.js"
 #include "CStructure.js"

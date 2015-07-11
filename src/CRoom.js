@@ -1,4 +1,5 @@
-#include "CRoomFind.js"
+#include "CRoom_Find.js"
+#include "CRoom_Tasks.js"
 
 // ######### Room #############################################################
 
@@ -27,6 +28,7 @@ Room.prototype.run = function() {
         TIMER_END(TIMER_MODULE_ROOM, 'dynamic_init')
     }
 
+    this.initTasks();
 
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'actions', 'of room ' + this.name)
         this.structuresAction();
@@ -270,7 +272,7 @@ Room.prototype.constructionsWorkerAction = function() {
             switch (construction.structureType) {
                 case STRUCTURE_ROAD:      builderCount += 0.2;
                     break; 
-                case STRUCTURE_EXTENSION: ++ builderCount;
+                case STRUCTURE_EXTENSION: builderCount += 5;
                     break;
                 default:                  ++ builderCount;
                     break;
@@ -359,6 +361,8 @@ Room.prototype.creepsRequiredAllWork = function() {
     return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 2 + 2; //harvester, upgrader, builder, repairer, collector
 }
 
+
+
 // ########### SPAWN SECTION ############################################
 Room.prototype.spawnAction = function() {
     for (var spawnId in this.spawns) {
@@ -401,6 +405,7 @@ Room.prototype.getHostileCreeps = function() {
     }
     return this.hostileCreeps;
 }
+
 // ########### OTHER SECTION ############################################
 Room.prototype.logCompact = function(message) {
     logCompact('[' + this.name + "] " + message);

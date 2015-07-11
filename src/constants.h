@@ -8,3 +8,6 @@
 #define BODY_UPGRADER 'upgrader'
 #define BODY_HEALER 'healer'
 #define BODY_RANGER 'ranger'
+
+
+#define TASK_HARVEST 'TASK_HARVEST'

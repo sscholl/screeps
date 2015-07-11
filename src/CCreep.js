@@ -68,6 +68,10 @@ Creep.prototype.movePredefined = function(targetPos, opts, onPos) {
     
 }
 
+Creep.prototype.getBodyType = function() {
+    return this.body;
+}
+
 Creep.prototype.moveAround = function() {
     this.move(Game.time % 8 + 1);
 } 
@@ -76,11 +80,13 @@ Creep.prototype.moveRandom = function() {
     this.move(Math.floor(Math.random() * 8) % 8 + 1);
 } 
 
-// ########### OTHER SECTION ###########################################
-
+// ########### OTHER SECTION ############################################
+Creep.prototype.logCompact = function(message) {
+    logCompact('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
+}
 Creep.prototype.logDetail = function(message) {
-    console.log('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
+    logDetail('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
 }
 Creep.prototype.logError = function(message) {
-    console.log('!!!ERROR!!! [' + this.name + "] in room " + this.room.name + " "+ message);
-} 
+    logError('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
+}

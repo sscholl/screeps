@@ -28,15 +28,193 @@
  function logLevelDecrease() {
   Memory.logger.level --;
  }
+ Memory.timer = {};
+
+ function timerBegin(module, timerName) { timerBegin_(module, timerName, ""); }
+ function timerEnd(module, timerName) { timerEnd_(module, timerName, ""); }
+ function timerBegin_(module, timerName, text) {
+  logDetail('--> ' + timerName + ' ' + text);
+  logLevelIncrease();
+  Memory.timer[timerName] = Game.getUsedCpu();
+ }
+ function timerEnd_(module, timerName, text) {
+  Memory.timer[timerName] = Game.getUsedCpu() - Memory.timer[timerName];
+  logLevelDecrease();
+     logDetail('<-- ' + timerName + ' [' + Memory.timer[timerName].toFixed(1) + '] ' + text
+     );
+ }
 
 
  console.log('===============================================' + Game.time +
      '===============================================');
 
 
+timerBegin("main", 'main');
 
 
 
+
+var CTask = function CTask(type, targetId, pos, qty, energySource, energySink)
+{
+    this.type = type;
+    this.targetId = targetId;
+    this.target = undefined;
+    this.pos = pos;
+    this.qty = qty;
+    this.energySource = energySource;
+    this.energySink = energySink;
+
+
+    this.assignment = {};
+}
+
+
+CTask.prototype.getType = function()
+{
+    return this.type;
+}
+CTask.prototype.getTarget = function()
+{
+    if (target == undefined) {
+        this.target = Game.getObjectById(this.targetId);
+    }
+    return this.target;
+}
+CTask.prototype.getPos = function()
+{
+    if (this.pos.construtor == undefined) {
+        this.pos.construtor = RoomPosition;
+    }
+    return this.pos;
+}
+CTask.prototype.getQty = function()
+{
+    return this.qtyAssigned;
+}
+CTask.prototype.getAssignment = function()
+{
+    return this.assignment;
+}
+
+CTask.prototype.assign = function(creep)
+{
+    var qty = 0;
+    switch (this.type) {
+        case 'TASK_HARVEST':
+            if (creep.getBodyType() == 'worker')
+                qty = this.qty;
+            else
+                qty = 1;
+            break;
+        default:
+            this.logError("Can't assign task, type ' + type + ' not available.");
+            return;
+    }
+    if (qty > this.qty) qty = this.qty;
+    this.assignment[creep.id] = qty;
+}
+
+CTask.prototype.getCode = function()
+{
+    if (this.code == undefined) {
+        this.code = this.type + "_" + this.pos.x + "_" + this.pos.y;
+    }
+    return this.code;
+}
+
+CTask.prototype.assign = function(creep)
+{
+    var qty = 0;
+    switch (this.type) {
+        case 'TASK_HARVEST':
+            if (creep.getBodyType() == 'worker')
+                qty = this.qty;
+            else
+                qty = 1;
+            break;
+        default:
+            this.logError('task type ' + type + ' not available.');
+            return;
+    }
+    if (qty > this.qty) qty = this.qty;
+    this.assignment[creep.id] = qty;
+}
+
+CTask.prototype.equals = function(task)
+{
+    if (this.type == task.type
+        && this.targetId == task.targetId
+        && this.pos == task.pos
+
+        && this.energySource == task.energySource
+        && this.energySink == task.energySink
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+var CTasks = function CTasks(type, targetId, pos, qty, energySource, energySink)
+{
+}
+
+
+
+CTasks.prototype.get = function(taskCode) {
+    var task = this[taskCode];
+    if (task && task.constructor != CTask)
+        task.__proto__ = CTask.prototype;
+    return task;
+}
+CTasks.prototype.add = function(task) {
+    var myTask = this.get(task.getCode());
+    if (myTask == undefined) {
+        this[task.getCode()] = task;
+        this.incCount();
+    } else if (!myTask.equals(task)) {
+        myTask = task;
+    }
+}
+CTasks.prototype.del = function(task) {
+    var taskCode;
+    if (task instanceof String) taskCode = task;
+    else taskCode = task.getCode();
+    if (this.getTask(taskCode)) {
+        delete this[taskCode];
+        this.decCount();
+    } else {
+        this.logError("Task does not exist.");
+    }
+}
+
+
+
+
+CTasks.prototype.getCount = function() {
+    if (this.count == undefined)
+        this.count = 0;
+    return this.count = 0;
+}
+
+CTasks.prototype.setTasksCount = function() {
+    if (this.count == undefined)
+        this.count = 0;
+    this.count = 0;
+}
+
+CTasks.prototype.incCount = function() {
+    if (this.count == undefined)
+        this.count = 0;
+    ++ this.count;
+}
+
+CTasks.prototype.decCount = function() {
+    if (this.count == undefined)
+        this.logError("Task count is invalid.");
+    else
+        -- this.count;
+}
 
 
 
@@ -158,7 +336,7 @@ Source.prototype.setMemory = function() {
 }
 
 Source.prototype.initSpots = function() {
-
+    timerBegin_("room", 'initSpots', 'of room ' + this.room.name);
  this.memory.spots = [];
 
 
@@ -187,7 +365,7 @@ Source.prototype.initSpots = function() {
             }
         }
     }
-
+    timerEnd("room", 'initSpots');
 }
 
 
@@ -779,6 +957,10 @@ Creep.prototype.movePredefined = function(targetPos, opts, onPos) {
 
 }
 
+Creep.prototype.getBodyType = function() {
+    return this.body;
+}
+
 Creep.prototype.moveAround = function() {
     this.move(Game.time % 8 + 1);
 }
@@ -788,12 +970,14 @@ Creep.prototype.moveRandom = function() {
 }
 
 
-
+Creep.prototype.logCompact = function(message) {
+    logCompact('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
+}
 Creep.prototype.logDetail = function(message) {
-    console.log('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
+    logDetail('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
 }
 Creep.prototype.logError = function(message) {
-    console.log('!!!ERROR!!! [' + this.name + "] in room " + this.room.name + " "+ message);
+    logError('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
 }
 Room.prototype.findDroppedEnergy = function() {
     return this.find(FIND_DROPPED_ENERGY,
@@ -829,35 +1013,74 @@ Room.prototype.findSearchingDefaultWorkerFull = function() {
     });
 }
 
+Room.prototype.getTasks = function() {
+    if (this.memory.tasks == undefined) {
+        this.memory.tasks = new CTasks();
+    }
+    if (this.memory.tasks != CTask)
+        this.memory.tasks.__proto__ = CTasks.prototype;
+    return this.memory.tasks;
+}
+
+Room.prototype.initTasks = function() {
+    timerBegin_("room", 'initTasks', 'of room ' + this.name);
+    for (var id in this.sources) {
+        var source = this.sources[id];
+
+        if (source.memory.isSave) {
+            this.createTask('TASK_HARVEST', source.id, source.pos, source.memory.spots.length);
+        }
+    }
+    logDetail(JSON.stringify(this.getTasks()));;
+    timerEnd("room", 'initTasks');
+}
+
+Room.prototype.createTask = function(type, targetId, pos, qty) {
+    timerBegin_("room", 'addTask', 'of room ' + this.name);
+    var energySource = false, energySink = false;
+    switch (type) {
+        case 'TASK_HARVEST':
+            energySource = true;
+            break;
+        default:
+            this.logError('task type ' + type + ' not available.');
+            return;
+    }
+    var task = new CTask(type, targetId, pos, qty, energySource, energySink);
+    this.getTasks().add(task);
+    timerEnd("room", 'addTask');
+}
+
 
 
 Room.prototype.run = function() {
     this.initCreeps();
     if (!this.memory.timer || this.memory.timer <= 0) {
-
+        timerBegin_("room", 'static_init', 'of room ' + this.name);
             this.memory.timer = -1;
             this.initSources();
             this.memory.timer = 600;
-
+        timerEnd("room", 'static_init');
     }
 
-
+    timerBegin_("room", 'load', 'of room ' + this.name);
         this.loadSources();
         this.loadStructures();
         this.loadConstructions();
-
+    timerEnd("room", 'load');
 
 
     if (this.memory.timer % 30 == 0) {
-
+        timerBegin_("room", 'dynamic_init', 'of room ' + this.name);
             this.initDynamicSources();
             this.initDynamicConstructions();
             this.initDynamicStructures();
-
+        timerEnd("room", 'dynamic_init');
     }
 
+    this.initTasks();
 
-
+    timerBegin_("room", 'actions', 'of room ' + this.name);
         this.structuresAction();
 
         this.sourcesWorkerAction();
@@ -869,14 +1092,14 @@ Room.prototype.run = function() {
         this.guardAction();
 
         this.spawnAction();
-
+    timerEnd("room", 'actions');
 
     -- this.memory.timer;
 }
 
 
 Room.prototype.initSources = function() {
-
+    timerBegin_("room", 'initSources', 'of room ' + this.name);
     if (!this.memory.sources)
         this.memory.sources = {};
 
@@ -894,7 +1117,7 @@ Room.prototype.initSources = function() {
     for (var hostileSpawnNr in this.memory.hostileSpawns) {
         this.memory.hostileSpawnIds[hostileSpawnNr] = this.memory.hostileSpawns[hostileSpawnNr].id;
     }
-
+    timerEnd("room", 'initSources');
 }
 Room.prototype.loadSources = function() {
     this.sources = {};
@@ -928,7 +1151,7 @@ Room.prototype.initDynamicSources = function() {
     }
 }
 Room.prototype.sourcesWorkerAction = function() {
-
+    timerBegin_("room", 'sourcesWorkerAction', 'of room ' + this.name);
     for (var id in this.sources) {
         var source = this.sources[id];
 
@@ -972,7 +1195,7 @@ Room.prototype.sourcesWorkerAction = function() {
             }
         }
     }
-
+    timerEnd("room", 'sourcesWorkerAction');
 }
 
 
@@ -1099,7 +1322,7 @@ Room.prototype.constructionsWorkerAction = function() {
             switch (construction.structureType) {
                 case STRUCTURE_ROAD: builderCount += 0.2;
                     break;
-                case STRUCTURE_EXTENSION: ++ builderCount;
+                case STRUCTURE_EXTENSION: builderCount += 5;
                     break;
                 default: ++ builderCount;
                     break;
@@ -1189,6 +1412,8 @@ Room.prototype.creepsRequiredAllWork = function() {
 }
 
 
+
+
 Room.prototype.spawnAction = function() {
     for (var spawnId in this.spawns) {
         var spawn = this.spawns[spawnId];
@@ -1231,6 +1456,7 @@ Room.prototype.getHostileCreeps = function() {
     return this.hostileCreeps;
 }
 
+
 Room.prototype.logCompact = function(message) {
     logCompact('[' + this.name + "] " + message);
 }
@@ -1242,13 +1468,13 @@ Room.prototype.logError = function(message) {
 }
 
 
-
+timerBegin("main", 'game');
 var managerGame = require('CManagerGame');
 managerGame.run();
+timerEnd("main", 'game');
 
 
-
-
+timerBegin("main", 'room');
 for (var roomName in Game.rooms) {
     var room = Game.rooms[roomName];
 
@@ -1261,13 +1487,18 @@ for (var roomName in Game.rooms) {
 
     room.run();
 }
+timerEnd("main", 'room');
 
 
-
-
+timerBegin("main", 'creeps');
 for(var creepName in Game.creeps) {
     var creep = Game.creeps[creepName];
 
         creep.run();
 
 }
+timerEnd("main", 'creeps');
+
+
+
+timerEnd("main", 'main');
