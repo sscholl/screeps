@@ -73,6 +73,13 @@ Creep.prototype.runRepairer = function() {
                     }
                 });
             }
+            if (!structure) {
+                var structure = this.pos.findClosest(FIND_MY_STRUCTURES, {filter: 
+                    function(object) {
+                        return object.structureType == STRUCTURE_RAMPART && object.hits < object.hitsMax * 0.98;
+                    }
+                });
+            }
         }
         if (structure != null) {
             this.memory.currentTargetId = structure.id;

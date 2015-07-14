@@ -38,7 +38,11 @@ Creep.prototype.runHealer = function() {
         if (!this.pos.inRangeTo(guard, 1))
     	   this.movePredefined(guard);
     } else {
-    	this.movePredefined(this.room.defaultSpawn);
-    	this.heal(damagedCreep);
+        var collectionPoint = Game.flags[this.room.name];
+        if (collectionPoint) {
+          this.movePredefined(collectionPoint.pos, {}, true);
+        } else {
+        	this.movePredefined(this.room.defaultSpawn);
+        }
     }
 }

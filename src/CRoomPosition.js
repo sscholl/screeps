@@ -43,7 +43,7 @@ RoomPosition.prototype.findClosestSearchingDefaultWorker = function() {
         }
     );
 }
-RoomPosition.prototype.findClosestSearchingWorker = function() {
+RoomPosition.prototype.findClosestSearchingHarvester = function() {
     return this.findClosest(FIND_MY_CREEPS, 
         { filter:
             function (creep) {

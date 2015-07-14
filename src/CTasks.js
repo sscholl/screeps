@@ -1,61 +1,42 @@
-// ########### CTasks construtor #########################################
-var CTasks = function CTasks(type, targetId, pos, qty, energySource, energySink)
+/**
+ * Creates an instance of CTasks.
+ *
+ * @constructor
+ * @this {CTasks}
+ */
+var CTasks = function CTasks()
 {
+    this.collection = {};
 }
 
 // ########### CTasks methods ############################################
 
+CTasks.prototype.getCollection = function() {
+    return this.collection;
+}
 CTasks.prototype.get = function(taskCode) {
-    var task = this[taskCode];
+    var task = this.collection[taskCode];
     if (task && task.constructor != CTask)
         task.__proto__ = CTask.prototype;
     return task;
 }
 CTasks.prototype.add = function(task) {
     var myTask = this.get(task.getCode());
-    if (myTask == undefined) {
-        this[task.getCode()] = task;
-        this.incCount();
-    } else if (!myTask.equals(task)) {
-        myTask = task;
-    }
+    if (myTask == undefined)        this.collection[task.getCode()] = task;
+    else if (!myTask.equals(task))  myTask.update(task);
 }
+/**
+ * deletes a task
+ * @param {CTask, String} the task object or the task code
+ */
 CTasks.prototype.del = function(task) {
     var taskCode;
     if (task instanceof String) taskCode = task;
     else                        taskCode = task.getCode();
-    if (this.getTask(taskCode)) {
-        delete this[taskCode];
-        this.decCount();
-    } else {
-        this.logError("Task does not exist.");
-    }
+    if (this.getTask(taskCode)) delete this.collection[taskCode];
+    else                        this.logError("Task does not exist.");
 }
-
-
-
 
 CTasks.prototype.getCount = function() {
-    if (this.count == undefined)
-        this.count = 0;
-    return this.count = 0;
-}
-
-CTasks.prototype.setTasksCount = function() {
-    if (this.count == undefined)
-        this.count = 0;
-    this.count = 0;
-}
-
-CTasks.prototype.incCount = function() {
-    if (this.count == undefined)
-        this.count = 0;
-    ++ this.count;
-}
-
-CTasks.prototype.decCount = function() {
-    if (this.count == undefined)
-        this.logError("Task count is invalid.");
-    else
-        -- this.count;
+    return this.count = Object.keys(this.collection).length;;
 }

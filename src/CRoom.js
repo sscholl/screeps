@@ -89,7 +89,8 @@ Room.prototype.initDynamicSources = function() {
         var source = this.sources[id];
 
         source.memory.isSave = (
-                this.creepsHealer.length >= 2 && this.creepsRanger.length >= 2
+                this.creepsHealer.length >= 4  * this.hostileSpawns.length
+                && this.creepsRanger.length >= 3 * this.hostileSpawns.length
             ) || !source.memory.hasHostileSpawn;
         if (source.memory.isSave) {
             this.memory.sourcesSaveCount ++;
@@ -114,7 +115,7 @@ Room.prototype.sourcesWorkerAction = function() {
                 if (!creep) {
                     delete source.memory.creepName;
                 }
-                creep = source.pos.findClosestSearchingWorker();
+                creep = source.pos.findClosestSearchingHarvester();
                 if (creep) {
                     creep.memory.harvesterSourceId = source.id;
                     creep.memory.phase = PHASE_HARVEST;
@@ -159,7 +160,7 @@ Room.prototype.collectorWorkerAction = function() {
     }
 
 
-    var collectorCount = Math.round(this.energyAmount / 200) + 1;
+    var collectorCount = Math.round(this.energyAmount / 100) + 1;
     if (collectorCount > this.creepsDefault.length / 2)
         collectorCount = this.creepsDefault.length / 2;
 
@@ -348,6 +349,7 @@ Room.prototype.getDefaultHarvesterCount = function() {
                 if (source.memory.creepName) ++ this.defaultHarvesterCount;
                 else this.defaultHarvesterCount += source.memory.spots.length;
         }
+        LOG_DEBUG(this.defaultHarvesterCount)
     }
     return this.defaultHarvesterCount;
 }
@@ -358,7 +360,7 @@ Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount();
 }
 Room.prototype.creepsRequiredAllWork = function() {
-    return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 2 + 2; //harvester, upgrader, builder, repairer, collector
+    return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 1; //harvester, upgrader, repairer
 }
 
 
@@ -372,14 +374,13 @@ Room.prototype.spawnAction = function() {
         var body;
         if ( this.creepsDefault.length > this.creepsRequired()
             && this.creepsHarvester.length < this.memory.sourcesSaveCount
-            && this.extensions.length >= 8
+            && this.extensions.length >= 5
         ) {
             spawn.spawnHarvester();
         } else if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
             spawn.spawnDefault();
         } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2
             && (this.creepsHealer.length < 2 || this.creepsRanger.length > this.hostileSpawns.length)
-            && this.extensions.length >= 20
         ) {
             spawn.spawnHealer();
         } else if ( this.creepsRanger.length < this.hostileSpawns.length * 4

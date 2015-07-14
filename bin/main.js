@@ -54,15 +54,13 @@ timerBegin("main", 'main');
 
 
 
-var CTask = function CTask(type, targetId, pos, qty, energySource, energySink)
+var CTask = function CTask(type, targetId, pos, qty, energySource)
 {
     this.type = type;
     this.targetId = targetId;
-    this.target = undefined;
     this.pos = pos;
     this.qty = qty;
     this.energySource = energySource;
-    this.energySink = energySink;
 
 
     this.assignment = {};
@@ -75,15 +73,12 @@ CTask.prototype.getType = function()
 }
 CTask.prototype.getTarget = function()
 {
-    if (target == undefined) {
-        this.target = Game.getObjectById(this.targetId);
-    }
-    return this.target;
+    return Game.getObjectById(this.targetId);
 }
 CTask.prototype.getPos = function()
 {
-    if (this.pos.construtor == undefined) {
-        this.pos.construtor = RoomPosition;
+    if (this.pos.construtor != RoomPosition) {
+        this.pos.__proto__ = RoomPosition.prototype;
     }
     return this.pos;
 }
@@ -96,24 +91,6 @@ CTask.prototype.getAssignment = function()
     return this.assignment;
 }
 
-CTask.prototype.assign = function(creep)
-{
-    var qty = 0;
-    switch (this.type) {
-        case 'TASK_HARVEST':
-            if (creep.getBodyType() == 'worker')
-                qty = this.qty;
-            else
-                qty = 1;
-            break;
-        default:
-            this.logError("Can't assign task, type ' + type + ' not available.");
-            return;
-    }
-    if (qty > this.qty) qty = this.qty;
-    this.assignment[creep.id] = qty;
-}
-
 CTask.prototype.getCode = function()
 {
     if (this.code == undefined) {
@@ -122,7 +99,7 @@ CTask.prototype.getCode = function()
     return this.code;
 }
 
-CTask.prototype.assign = function(creep)
+CTask.prototype.searchAssignment = function(creep)
 {
     var qty = 0;
     switch (this.type) {
@@ -137,6 +114,24 @@ CTask.prototype.assign = function(creep)
             return;
     }
     if (qty > this.qty) qty = this.qty;
+    this.assignment[creep.name] = qty;
+}
+
+CTask.prototype.assign = function(creep)
+{
+    var qty = 0;
+    switch (this.type) {
+        case 'TASK_HARVEST':
+            if (creep.getBodyType() == 'worker')
+                qty = this.qty;
+            else
+                qty = 1;
+            break;
+        default:
+            this.logError("Can't assign task, type " + type + " not available.");
+            return;
+    }
+    if (qty > this.qty) qty = this.qty;
     this.assignment[creep.id] = qty;
 }
 
@@ -145,7 +140,7 @@ CTask.prototype.equals = function(task)
     if (this.type == task.type
         && this.targetId == task.targetId
         && this.pos == task.pos
-
+        && this.qty == task.qty
         && this.energySource == task.energySource
         && this.energySink == task.energySink
     ) {
@@ -155,39 +150,63 @@ CTask.prototype.equals = function(task)
     }
 }
 
-var CTasks = function CTasks(type, targetId, pos, qty, energySource, energySink)
+CTask.prototype.update = function(task)
 {
+    this.type = task.type;
+    this.targetId = task.targetId;
+    this.pos = task.pos;
+    this.qty = task.qty;
+    this.energySource = task.energySource;
+    this.energySink = task.energySink;
 }
 
 
 
+
+
+
+
+var CTasks = function CTasks()
+{
+    this.collection = {};
+}
+
+
+
+CTasks.prototype.getCollection = function() {
+    return this.collection;
+}
 CTasks.prototype.get = function(taskCode) {
-    var task = this[taskCode];
+    var task = this.collection[taskCode];
     if (task && task.constructor != CTask)
         task.__proto__ = CTask.prototype;
     return task;
 }
 CTasks.prototype.add = function(task) {
     var myTask = this.get(task.getCode());
+    logDetail(JSON.stringify(myTask));
     if (myTask == undefined) {
-        this[task.getCode()] = task;
+        this.collection[task.getCode()] = task;
         this.incCount();
     } else if (!myTask.equals(task)) {
-        myTask = task;
+        myTask.update(task);
     }
 }
+
+
+
+
 CTasks.prototype.del = function(task) {
     var taskCode;
     if (task instanceof String) taskCode = task;
     else taskCode = task.getCode();
     if (this.getTask(taskCode)) {
-        delete this[taskCode];
+        delete this.collection[taskCode];
         this.decCount();
     } else {
         this.logError("Task does not exist.");
     }
 }
-
 
 
 
@@ -235,7 +254,7 @@ Spawn.prototype.spawnDefault = function() {
     var bodyParts;
     if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 1
-        && this.room.extensions.length >= 7
+        && this.room.extensions.length >= 9
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
     } else if (
@@ -245,9 +264,9 @@ Spawn.prototype.spawnDefault = function() {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 1.75
-        && this.room.extensions.length >= 4
+        && this.room.extensions.length >= 5
     ) {
-        bodyParts = [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
+        bodyParts = [WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 2
         && this.room.extensions.length >= 2
@@ -264,7 +283,14 @@ Spawn.prototype.spawnDefault = function() {
 }
 
 Spawn.prototype.spawnHarvester = function() {
-    var bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, CARRY, MOVE ];
+    var bodyParts;
+    if (this.room.extensions.length >= 10) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];
+    } else if (this.room.extensions.length >= 8) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    } else if (this.room.extensions.length >= 5) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    }
     this.spawn('worker', bodyParts);
 }
 
@@ -274,11 +300,15 @@ Spawn.prototype.spawnUpgrader = function() {
 }
 
 Spawn.prototype.spawnHealer = function() {
-    var bodyParts = [
-        MOVE, MOVE, MOVE,
-        HEAL, HEAL, HEAL, HEAL,
-        MOVE
-    ];
+    var bodyParts;
+    if (this.room.extensions.length >= 20) {
+        bodyParts = [ MOVE, MOVE, MOVE,
+            HEAL, HEAL, HEAL, HEAL,
+            MOVE
+        ];
+    } else {
+        bodyParts = [MOVE, HEAL];
+    }
     this.spawn('healer', bodyParts);
 }
 
@@ -417,7 +447,7 @@ RoomPosition.prototype.findClosestSearchingDefaultWorker = function() {
         }
     );
 }
-RoomPosition.prototype.findClosestSearchingWorker = function() {
+RoomPosition.prototype.findClosestSearchingHarvester = function() {
     return this.findClosest(FIND_MY_CREEPS,
         { filter:
             function (creep) {
@@ -710,6 +740,13 @@ Creep.prototype.runRepairer = function() {
                     }
                 });
             }
+            if (!structure) {
+                var structure = this.pos.findClosest(FIND_MY_STRUCTURES, {filter:
+                    function(object) {
+                        return object.structureType == STRUCTURE_RAMPART && object.hits < object.hitsMax * 0.98;
+                    }
+                });
+            }
         }
         if (structure != null) {
             this.memory.currentTargetId = structure.id;
@@ -897,8 +934,12 @@ Creep.prototype.runHealer = function() {
         if (!this.pos.inRangeTo(guard, 1))
         this.movePredefined(guard);
     } else {
-     this.movePredefined(this.room.defaultSpawn);
-     this.heal(damagedCreep);
+        var collectionPoint = Game.flags[this.room.name];
+        if (collectionPoint) {
+          this.movePredefined(collectionPoint.pos, {}, true);
+        } else {
+         this.movePredefined(this.room.defaultSpawn);
+        }
     }
 }
 
@@ -1031,13 +1072,14 @@ Room.prototype.initTasks = function() {
             this.createTask('TASK_HARVEST', source.id, source.pos, source.memory.spots.length);
         }
     }
+    this.assignTasks();
     logDetail(JSON.stringify(this.getTasks()));;
     timerEnd("room", 'initTasks');
 }
 
 Room.prototype.createTask = function(type, targetId, pos, qty) {
-    timerBegin_("room", 'addTask', 'of room ' + this.name);
-    var energySource = false, energySink = false;
+    timerBegin_("room", 'createTask', 'of room ' + this.name);
+    var energySource = false;
     switch (type) {
         case 'TASK_HARVEST':
             energySource = true;
@@ -1046,9 +1088,22 @@ Room.prototype.createTask = function(type, targetId, pos, qty) {
             this.logError('task type ' + type + ' not available.');
             return;
     }
-    var task = new CTask(type, targetId, pos, qty, energySource, energySink);
+    var task = new CTask(type, targetId, pos, qty, energySource);
     this.getTasks().add(task);
-    timerEnd("room", 'addTask');
+
+    timerEnd("room", 'createTask');
+}
+
+Room.prototype.assignTasks = function() {
+    timerBegin_("room", 'assignTasks', 'of room ' + this.name);
+    var tasks = this.getTasks().getCollection();
+    for (var taskCode in tasks) {
+        var task = tasks[taskCode];
+        var assignment = task.getAssignment();
+        logDetail(JSON.stringify(assignment));
+    }
+
+    timerEnd("room", 'assignTasks');
 }
 
 
@@ -1139,7 +1194,8 @@ Room.prototype.initDynamicSources = function() {
         var source = this.sources[id];
 
         source.memory.isSave = (
-                this.creepsHealer.length >= 2 && this.creepsRanger.length >= 2
+                this.creepsHealer.length >= 4 * this.hostileSpawns.length
+                && this.creepsRanger.length >= 3 * this.hostileSpawns.length
             ) || !source.memory.hasHostileSpawn;
         if (source.memory.isSave) {
             this.memory.sourcesSaveCount ++;
@@ -1164,7 +1220,7 @@ Room.prototype.sourcesWorkerAction = function() {
                 if (!creep) {
                     delete source.memory.creepName;
                 }
-                creep = source.pos.findClosestSearchingWorker();
+                creep = source.pos.findClosestSearchingHarvester();
                 if (creep) {
                     creep.memory.harvesterSourceId = source.id;
                     creep.memory.phase = 'harvest';
@@ -1209,7 +1265,7 @@ Room.prototype.collectorWorkerAction = function() {
     }
 
 
-    var collectorCount = Math.round(this.energyAmount / 200) + 1;
+    var collectorCount = Math.round(this.energyAmount / 100) + 1;
     if (collectorCount > this.creepsDefault.length / 2)
         collectorCount = this.creepsDefault.length / 2;
 
@@ -1398,6 +1454,7 @@ Room.prototype.getDefaultHarvesterCount = function() {
                 if (source.memory.creepName) ++ this.defaultHarvesterCount;
                 else this.defaultHarvesterCount += source.memory.spots.length;
         }
+        logDetail(JSON.stringify(this.defaultHarvesterCount));
     }
     return this.defaultHarvesterCount;
 }
@@ -1408,7 +1465,7 @@ Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount();
 }
 Room.prototype.creepsRequiredAllWork = function() {
-    return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 2 + 2;
+    return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 1;
 }
 
 
@@ -1422,14 +1479,13 @@ Room.prototype.spawnAction = function() {
         var body;
         if ( this.creepsDefault.length > this.creepsRequired()
             && this.creepsHarvester.length < this.memory.sourcesSaveCount
-            && this.extensions.length >= 8
+            && this.extensions.length >= 5
         ) {
             spawn.spawnHarvester();
         } else if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
             spawn.spawnDefault();
         } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2
             && (this.creepsHealer.length < 2 || this.creepsRanger.length > this.hostileSpawns.length)
-            && this.extensions.length >= 20
         ) {
             spawn.spawnHealer();
         } else if ( this.creepsRanger.length < this.hostileSpawns.length * 4

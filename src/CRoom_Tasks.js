@@ -17,13 +17,14 @@ Room.prototype.initTasks = function() {
             this.createTask(TASK_HARVEST, source.id, source.pos, source.memory.spots.length);
         }
     }
+    this.assignTasks();
     LOG_DEBUG(this.getTasks());
     TIMER_END(TIMER_MODULE_ROOM, 'initTasks')
 }
 
 Room.prototype.createTask = function(type, targetId, pos, qty) {
-    TIMER_BEGIN_(TIMER_MODULE_ROOM, 'addTask', 'of room ' + this.name)
-    var energySource = false, energySink = false;
+    TIMER_BEGIN_(TIMER_MODULE_ROOM, 'createTask', 'of room ' + this.name)
+    var energySource = false;
     switch (type) {
         case TASK_HARVEST:
             energySource = true;
@@ -32,7 +33,20 @@ Room.prototype.createTask = function(type, targetId, pos, qty) {
             this.logError('task type ' + type + ' not available.');
             return;
     }
-    var task = new CTask(type, targetId, pos, qty, energySource, energySink);
+    var task = new CTask(type, targetId, pos, qty, energySource);
     this.getTasks().add(task);
-    TIMER_END(TIMER_MODULE_ROOM, 'addTask')
+
+    TIMER_END(TIMER_MODULE_ROOM, 'createTask')
+}
+
+Room.prototype.assignTasks = function() {
+    TIMER_BEGIN_(TIMER_MODULE_ROOM, 'assignTasks', 'of room ' + this.name)
+    var tasks = this.getTasks().getCollection();
+    for (var taskCode in tasks) {
+        var task = tasks[taskCode];
+        var assignments = task.getAssignments();
+        LOG_DEBUG(assignments)
+    }
+
+    TIMER_END(TIMER_MODULE_ROOM, 'assignTasks')
 }

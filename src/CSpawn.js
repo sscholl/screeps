@@ -17,7 +17,7 @@ Spawn.prototype.spawnDefault = function() {
     var bodyParts;
     if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 1 
-        && this.room.extensions.length >= 7
+        && this.room.extensions.length >= 9
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
     } else if (
@@ -27,9 +27,9 @@ Spawn.prototype.spawnDefault = function() {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 1.75 
-        && this.room.extensions.length >= 4
+        && this.room.extensions.length >= 5
     ) {
-        bodyParts = [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
+        bodyParts = [WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsDefault.length >= this.room.creepsRequired() / 2 
         && this.room.extensions.length >= 2
@@ -46,7 +46,14 @@ Spawn.prototype.spawnDefault = function() {
 }
 
 Spawn.prototype.spawnHarvester = function() {
-    var bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, CARRY, MOVE ];
+    var bodyParts;
+    if (this.room.extensions.length >= 10) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];
+    } else if (this.room.extensions.length >= 8) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    } else if (this.room.extensions.length >= 5) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    }
     this.spawn(BODY_HARVESTER, bodyParts);
 }
 
@@ -56,11 +63,15 @@ Spawn.prototype.spawnUpgrader = function() {
 }
 
 Spawn.prototype.spawnHealer = function() {
-    var bodyParts = [
-        MOVE, MOVE, MOVE,  //4 * 50 = 200
-        HEAL, HEAL, HEAL, HEAL, //4 * 200 = 800
-        MOVE
-    ];
+    var bodyParts;
+    if (this.room.extensions.length >= 20) {
+        bodyParts = [ MOVE, MOVE, MOVE,  //4 * 50 = 200
+            HEAL, HEAL, HEAL, HEAL, //4 * 200 = 800
+            MOVE
+        ];
+    } else {
+        bodyParts = [MOVE, HEAL];
+    }
     this.spawn(BODY_HEALER, bodyParts);
 }
 
