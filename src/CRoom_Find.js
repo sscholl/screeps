@@ -6,7 +6,7 @@ Room.prototype.findDroppedEnergy = function() {
             }
         }
     );
-}
+};
 
 Room.prototype.findSearchingDefaultWorker = function() {
     return this.find(FIND_MY_CREEPS, { filter:
@@ -14,7 +14,7 @@ Room.prototype.findSearchingDefaultWorker = function() {
             return creep.memory.body == BODY_DEFAULT && creep.memory.phase == PHASE_SEARCH 
         }
     });
-}
+};
 
 Room.prototype.findSearchingDefaultWorkerEmpty = function() {
     return this.find(FIND_MY_CREEPS, { filter:
@@ -22,7 +22,7 @@ Room.prototype.findSearchingDefaultWorkerEmpty = function() {
             return creep.memory.body == BODY_DEFAULT && creep.memory.phase == PHASE_SEARCH && creep.energy <= creep.energyCapacity / 2
         }
     });
-}
+};
 
 Room.prototype.findSearchingDefaultWorkerFull = function() {
     return this.find(FIND_MY_CREEPS, { filter:
@@ -30,4 +30,4 @@ Room.prototype.findSearchingDefaultWorkerFull = function() {
             return creep.memory.body == BODY_DEFAULT && creep.memory.phase == PHASE_SEARCH && creep.energy > creep.energyCapacity / 2
         }
     });
-}
+};

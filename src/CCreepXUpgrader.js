@@ -1,7 +1,7 @@
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runUpgrader = function() {
-	if (this.memory.phase == PHASE_SEARCH) {
+    if (this.memory.phase == PHASE_SEARCH) {
         delete this.memory.harvesterSourceId;
         LOG_DETAIL_THIS("upgrader has no idea what to do")
         this.moveAround();

@@ -8,7 +8,7 @@ Creep.prototype.runCollector = function() {
         return;
     // searches dropped energy
     } else {
-    	var target = null;
+        var target = null;
         if (this.memory.currentTargetId) {
             target = Game.getObjectById(this.memory.currentTargetId);
             if (target && target.constructor != Energy) target = null;
@@ -19,12 +19,12 @@ Creep.prototype.runCollector = function() {
             if (target) this.memory.currentTargetId = target.id;
         }
         
-    	if (target) {
-			this.movePredefined(target.pos);
-			this.pickup(target);
-		} else {
+        if (target) {
+            this.movePredefined(target.pos);
+            this.pickup(target);
+        } else {
             this.memory.phase = PHASE_SEARCH;
             this.moveAround();
-		}
-	}
+        }
+    }
 }

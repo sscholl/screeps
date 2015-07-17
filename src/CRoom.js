@@ -349,12 +349,11 @@ Room.prototype.getDefaultHarvesterCount = function() {
                 if (source.memory.creepName) ++ this.defaultHarvesterCount;
                 else this.defaultHarvesterCount += source.memory.spots.length;
         }
-        LOG_DEBUG(this.defaultHarvesterCount)
     }
     return this.defaultHarvesterCount;
 }
 Room.prototype.getDefaultUpgraderCount = function() {
-    return 4;
+    return 1;
 }
 Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount();

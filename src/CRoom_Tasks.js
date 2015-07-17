@@ -14,11 +14,15 @@ Room.prototype.initTasks = function() {
         var source = this.sources[id];
 
         if (source.memory.isSave) {
-            this.createTask(TASK_HARVEST, source.id, source.pos, source.memory.spots.length);
+            this.createTask(
+                    TASK_HARVEST, 
+                    source.id, 
+                    source.pos, 
+1 // source.memory.spots.length
+            );
         }
     }
-    this.assignTasks();
-    LOG_DEBUG(this.getTasks());
+this.assignTasks();
     TIMER_END(TIMER_MODULE_ROOM, 'initTasks')
 }
 
@@ -44,8 +48,35 @@ Room.prototype.assignTasks = function() {
     var tasks = this.getTasks().getCollection();
     for (var taskCode in tasks) {
         var task = tasks[taskCode];
+LOG_DEBUG("task " + task.getCode());
         var assignments = task.getAssignments();
-        LOG_DEBUG(assignments)
+        for (var creepName in assignments) {
+            var creep = Game.creeps[creepName];
+            if (   !creep ) {
+                task.assignmentDelete(creepName);
+LOG_DEBUG("disassign task " + task.getCode());
+            } else if (creep.memory.taskCode !== task.getCode()
+                || creep.memory.phase !== PHASE_TASK
+            ) {
+                task.assignmentDelete(creepName);
+                creep.taskDisassign();
+LOG_DEBUG("AAAdisassign task " + task.getCode());
+            } else {
+//LOG_DEBUG("task " + task.getCode() + " is still assigned to " + creep.name);
+            }
+        }
+LOG_DEBUG(task.assignments)
+        while (task.getQtyAssigned() < task.getQty()) {
+            creep = task.assignmentSearch();
+            if (creep) {
+LOG_DEBUG("assign task " + task.getCode() + " to " + creep.name);
+                task.assignmentCreate(creep);
+break;
+            } else {
+                break;
+            }
+        }
+LOG_DEBUG(task.assignments)
     }
 
     TIMER_END(TIMER_MODULE_ROOM, 'assignTasks')

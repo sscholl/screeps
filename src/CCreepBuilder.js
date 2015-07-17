@@ -10,12 +10,12 @@ Creep.prototype.runBuilder = function() {
             this.moveAround();
         }
     } else {
-    	var target = this.pos.findClosest(FIND_CONSTRUCTION_SITES);
+        var target = this.pos.findClosest(FIND_CONSTRUCTION_SITES);
         if (target) {
-    		this.movePredefined(target.pos);
-    		var result = this.build(target);
+            this.movePredefined(target.pos);
+            var result = this.build(target);
             if (result == ERR_RCL_NOT_ENOUGH) this.memory.role = "upgrader";
-    		else if (result != OK && result != ERR_NOT_IN_RANGE) {
+            else if (result != OK && result != ERR_NOT_IN_RANGE) {
                 this.movePredefined(this.room.defaultSpawn.pos);
                 if (result != ERR_INVALID_TARGET) this.logError(this.name + " can't build " + result);
             }

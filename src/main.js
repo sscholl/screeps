@@ -4,8 +4,8 @@
 #include "constants.h"
 
 #if DEBUG
-	console.log('===============================================' + Game.time +
-			 	'===============================================');
+    console.log('===============================================' + Game.time +
+                 '===============================================');
 #endif
 
 TIMER_BEGIN(TIMER_MODULE_MAIN, 'main')
@@ -48,7 +48,11 @@ TIMER_BEGIN(TIMER_MODULE_MAIN, 'creeps')
 for(var creepName in Game.creeps) {
     var creep = Game.creeps[creepName];
     //TIMER_BEGIN_(TIMER_MODULE_MAIN, 'creep', creep.name + ' role:' + creep.memory.role);
+    try {
         creep.run();
+    } catch (e) {
+        console.log("error");
+    }
     //TIMER_END(TIMER_MODULE_MAIN, 'creep');
 }
 TIMER_END(TIMER_MODULE_MAIN, 'creeps')

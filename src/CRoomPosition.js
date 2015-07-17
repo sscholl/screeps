@@ -61,3 +61,30 @@ RoomPosition.prototype.findClosestSearchingUpgrader = function() {
         }
     );
 }
+
+
+
+
+
+
+RoomPosition.prototype.findClosestCreepEmpty = function(_bodyType) {
+    var bodyType = _bodyType;
+    return this.findClosest(FIND_MY_CREEPS, { filter:
+        function (creep) {
+            return creep.memory.body === bodyType 
+                    && creep.memory.phase == PHASE_SEARCH 
+                    && creep.energy <= creep.energyCapacity / 2
+        }
+    });
+};
+
+RoomPosition.prototype.findClosestCreepFull = function(_bodyType) {
+    var bodyType = _bodyType;
+    return this.findClosest(FIND_MY_CREEPS, { filter:
+        function (creep) {
+            return creep.memory.body == bodyType 
+                    && creep.memory.phase == PHASE_SEARCH 
+                    && creep.energy > creep.energyCapacity / 2
+        }
+    });
+};

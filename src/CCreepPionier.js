@@ -36,11 +36,11 @@ Creep.prototype.runPionier = function() {
             }
         }
     } else if (this.memory.phase == PHASE_DELIVER) {
-    	var target = this.pos.findClosest(FIND_CONSTRUCTION_SITES);
-		this.moveTo(target);
-		var result = this.build(target);
+        var target = this.pos.findClosest(FIND_CONSTRUCTION_SITES);
+        this.moveTo(target);
+        var result = this.build(target);
         if (result == ERR_RCL_NOT_ENOUGH) this.memory.role = "upgrader";
-		else if (result != OK && result != ERR_NOT_IN_RANGE) {
+        else if (result != OK && result != ERR_NOT_IN_RANGE) {
             if (result != ERR_INVALID_TARGET) console.log(this.name + " can't build " + result);
         }
         this.moveTo(Game.spawns.Spawn2);

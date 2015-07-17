@@ -15,19 +15,19 @@ Creep.prototype.runDefaultHarvester = function() {
         this.memory.phase = PHASE_SEARCH;
     }
     
-	if (this.memory.phase == PHASE_SEARCH) {
+    if (this.memory.phase == PHASE_SEARCH) {
         delete this.memory.harvesterSourceId;
         this.moveAround();
     }
     if (this.memory.phase == PHASE_HARVEST) {
-		var source = this.room.sources[this.memory.harvesterSourceId];
-		if ( source != null ) {
+        var source = this.room.sources[this.memory.harvesterSourceId];
+        if ( source != null ) {
             //this.say(this.memory.harvesterSourceId);
             this.movePredefined(source.pos);
             this.harvest(source);
-		} else {
+        } else {
             this.memory.phase = PHASE_SEARCH;
-		}
+        }
     } else if (this.memory.phase == PHASE_DELIVER) {
         var ext = this.pos.findClosestEmptyExtension();
         if (ext != null) {
@@ -38,8 +38,9 @@ Creep.prototype.runDefaultHarvester = function() {
                 this.movePredefined(this.room.defaultSpawn.pos);
                 this.transferEnergy(this.room.defaultSpawn);
             } else {
+                this.moveAround();
                 this.memory.phase = PHASE_SEARCH;
             }
         }
-	}
+    }
 }

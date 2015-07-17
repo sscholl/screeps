@@ -1,47 +1,63 @@
 
 Creep.prototype.runDefault = function() {
-	var empty   = this.energy <= 0;
-    var full    = this.energy >= this.energyCapacity;
-    var phase   = this.memory.phase;
-
-    if      (phase == PHASE_SEARCH && empty)    this.memory.phase = PHASE_SEARCH;
-    else if (phase == PHASE_SEARCH && !empty)   this.memory.phase = PHASE_DELIVER;
-    else if (phase == PHASE_HARVEST && !full)   this.memory.phase = PHASE_HARVEST;
-    else if (phase == PHASE_HARVEST && full)    this.memory.phase = PHASE_DELIVER;
-    else if (phase == PHASE_DELIVER && !empty)  this.memory.phase = PHASE_DELIVER;
-    else if (phase == PHASE_DELIVER && empty)   this.memory.phase = PHASE_SEARCH;
-    else {
+    if (
+        this.memory.phase === undefined
+        || this.memory.phase === PHASE_SEARCH
+        || !this.getTask()
+    ) {
         this.memory.phase = PHASE_SEARCH;
     }
     
-	if (this.memory.phase == PHASE_SEARCH) {
-        delete this.memory.harvesterSourceId;
+    if (this.memory.phase === PHASE_SEARCH) {
         this.moveAround();
     }
-    if (this.memory.phase == PHASE_HARVEST) {
-		var source = this.room.sources[this.memory.harvesterSourceId];
-		if ( source != null ) {
-            //this.say(this.memory.harvesterSourceId);
-            this.movePredefined(source.pos);
-            this.harvest(source);
-		} else {
-            this.memory.phase = PHASE_SEARCH;
-		}
-    } else if (this.memory.phase == PHASE_DELIVER) {
-        var ext = this.pos.findClosestEmptyExtension();
-        if (ext != null) {
-            this.movePredefined(ext.pos);
-            this.transferEnergy(ext)
-        } else {
-            if (this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity) {
-                this.movePredefined(this.room.defaultSpawn.pos);
-                this.transferEnergy(this.room.defaultSpawn);
-            } else {
-                this.memory.role = 'builder';
-            }
+    if (this.memory.phase === PHASE_TASK) {
+        this.say("do my task");
+        switch (this.getTask().getType()) {
+            case TASK_HARVEST: this.taskHarvest(); break;
+            case TASK_COLLECT: break;
+            case TASK_DELIVER: break;
+            case TASK_UPGRADE: break;
+            case TASK_BUILD:   break;
+            case TASK_REPAIR:  break;
+            default:
+                this.logError("task " + this.getTask().getType() + " not available");
+                return;
         }
-	}
+    }
+};
+
+Creep.prototype.getTask = function() {
+    if (!this.task && this.memory.taskCode) {
+        this.task = this.room.getTasks().get(this.memory.taskCode);
+        if (!this.task) this.logError("task " + this.memory.taskCode + " not available")
+    }
+    return this.task;
 }
+
+Creep.prototype.taskAssign = function(task) {
+    this.memory.taskCode = task.getCode();
+    this.memory.phase = PHASE_TASK;
+}
+
+Creep.prototype.taskDisassign = function() {
+    this.memory.phase = PHASE_SEARCH;
+    delete this.memory.taskCode;
+    delete this.task;
+}
+
+Creep.prototype.taskHarvest = function() {
+    var source = this.getTask().getTarget();
+    if ( source != null ) {
+        //this.say(this.memory.harvesterSourceId);
+        this.movePredefined(source.pos);
+        this.harvest(source);
+    } else {
+        this.taskDisassign();
+    }
+}
+
+
 
 Creep.prototype.changeCollector = function() {
     this.memory.role = 'collector';

@@ -3,20 +3,20 @@
 Source.prototype.memory = undefined;
 
 Source.prototype.setMemory = function() {
-	this.memory = this.room.memory.sources[this.id];
+    this.memory = this.room.memory.sources[this.id];
 }
 
 Source.prototype.initSpots = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'initSpots', 'of room ' + this.room.name)
-	this.memory.spots = [];
+    this.memory.spots = [];
 
-	//if is source save for harvest
+    //if is source save for harvest
     var targetsStructures = this.pos.findEnemyStructuresInAttackRange();
 
     this.memory.hasHostileSpawn = targetsStructures.length > 0;
 
     // seach all available spots of the source
-    	//var positions = this.room.lookForAtArea('terrain', this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1);
+        //var positions = this.room.lookForAtArea('terrain', this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1);
 
     // add this spots to this.spots
     for (var y = this.pos.y - 1; this.pos.y + 1 >= y; ++ y) {
