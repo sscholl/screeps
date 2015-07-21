@@ -3,7 +3,6 @@
 #include "CCreepBuilder.js"
 #include "CCreepCollector.js"
 #include "CCreepHarvester.js"
-#include "CCreepPionier.js"
 #include "CCreepRepairer.js"
 #include "CCreepUpgrader.js"
 
@@ -21,13 +20,11 @@ Creep.prototype.run = function() {
     if (role === 'harvester')           this.runDefaultHarvester();
     else if (role === 'builder')        this.runBuilder();
     else if (role === 'collector')      this.runCollector();
-    else if (role === 'pionier')        this.runPionier();
     else if (role === 'repairer')       this.runRepairer();
     else if (role === 'upgrader')       this.runDefaultUpgrader();
-    
-    else if (role === 'test')       this.runDefault();
 
-    else if (body === BODY_HARVESTER)   this.runHarvester();
+    else if (body === BODY_DEFAULT)     this.runDefault();
+    else if (body === BODY_HARVESTER)     this.runDefault();
     else if (body === BODY_UPGRADER)    this.runUpgrader();
     else if (body === BODY_HEALER)      this.runHealer();
     else if (body === BODY_RANGER)      this.runRanger();
@@ -45,7 +42,7 @@ Creep.prototype.movePredefined = function(targetPos, opts, onPos) {
 }
 
 Creep.prototype.getBodyType = function() {
-    return this.body;
+    return this.memory.body;
 }
 
 Creep.prototype.moveAround = function() {

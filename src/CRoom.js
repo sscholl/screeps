@@ -17,6 +17,7 @@ Room.prototype.run = function() {
         this.loadSources();
         this.loadStructures();
         this.loadConstructions();
+        this.energy = this.findDroppedEnergy();
     TIMER_END(TIMER_MODULE_ROOM, 'load')
     
 
@@ -33,10 +34,6 @@ Room.prototype.run = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'actions', 'of room ' + this.name)
         this.structuresAction();
 
-        this.sourcesWorkerAction();
-        this.collectorWorkerAction();
-        this.constructionsWorkerAction();
-        this.upgraderWorkerAction();
         this.repairerWorkerAction();
 
         this.guardAction();
@@ -100,121 +97,7 @@ Room.prototype.initDynamicSources = function() {
         var link = source.pos.findInRangeLink(2);
         if (link[0] != undefined) source.memory.linkId = link[0].id;
     }
-}
-Room.prototype.sourcesWorkerAction = function() {
-    TIMER_BEGIN_(TIMER_MODULE_ROOM, 'sourcesWorkerAction', 'of room ' + this.name)
-    for (var id in this.sources) {
-        var source = this.sources[id];
-
-        if (source.memory.isSave) {
-            var creep = Game.creeps[source.memory.creepName];
-            if (   !creep 
-                || creep.memory.harvesterSourceId != source.id
-                || creep.memory.phase != PHASE_HARVEST
-            ) {
-                if (!creep) {
-                    delete source.memory.creepName;
-                }
-                creep = source.pos.findClosestSearchingHarvester();
-                if (creep) {
-                    creep.memory.harvesterSourceId = source.id;
-                    creep.memory.phase = PHASE_HARVEST;
-                    source.memory.creepName = creep.name;
-                } else {
-                    for (var i in source.memory.spots) {
-                        var sourceSpot = source.memory.spots[i];
-                        creep = Game.creeps[sourceSpot.creepName];
-                        // if creep not exists or has a wrong state, search a new harvester
-                        if (   !creep 
-                            || creep.memory.harvesterSourceId != source.id
-                            || creep.memory.phase != PHASE_HARVEST
-                        ) {
-                            if (creep) {
-                                delete sourceSpot.creepName;
-                            }
-                            creep = source.pos.findClosestSearchingDefaultWorker();
-                            if (creep) {
-                                creep.memory.role = 'harvester';
-                                creep.memory.harvesterSourceId = source.id;
-                                creep.memory.phase = PHASE_HARVEST;
-                                sourceSpot.creepName = creep.name;
-                                this.logError("add a new default harvester for sourceSpot " + source.pos.x + " " + source.pos.y);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    TIMER_END(TIMER_MODULE_ROOM, 'sourcesWorkerAction')
-}
-
-// ########### ENERGY SECTION ###########################################
-Room.prototype.collectorWorkerAction = function() {
-    this.energy = this.findDroppedEnergy();
-
-    this.energyAmount = this.creepsHarvester.length;
-    for (var i in this.energy) {
-        var energy = this.energy[i];
-        this.energyAmount += energy.energy;
-    }
-
-
-    var collectorCount = Math.round(this.energyAmount / 100) + 1;
-    if (collectorCount > this.creepsDefault.length / 2)
-        collectorCount = this.creepsDefault.length / 2;
-
-    var creeps = this.find(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.role == 'collector'
-            }
-        }
-    );
-    var oldCollectorCount = creeps.length;
-
-    if (oldCollectorCount < collectorCount) {
-        creeps = this.findSearchingDefaultWorkerEmpty();
-        for(var i = 0; i < collectorCount - oldCollectorCount; ++ i) {
-            if (creeps[i]) {
-                creeps[i].changeCollector();
-            } else {
-                break;
-            }
-        }
-    }
-}
-
-// ########### CONTROLLER SECTION ##########################################
-Room.prototype.upgraderWorkerAction = function() {
-
-    var creep = this.controller.pos.findClosestSearchingUpgrader();
-    if (creep) {
-        creep.memory.phase = PHASE_UPGRADE;
-    }
-
-    var upgraderCount = this.getDefaultUpgraderCount() - this.creepsUpgrader.length; //replace 5 with controller spots
-    var creeps = this.find(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.role == 'upgrader'
-            }
-        }
-    );
-    var oldUpgraderCount = creeps.length;
-
-    if (oldUpgraderCount < upgraderCount) {
-        creeps = this.findSearchingDefaultWorkerFull();
-        if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
-        for(var i = 0; i < upgraderCount - oldUpgraderCount; ++ i) {
-            if (creeps[i]) {
-                creeps[i].memory.role = BODY_UPGRADER;
-                creeps[i].memory.phase = PHASE_UPGRADE;
-                LOG_DETAIL_THIS("add a upgrader " + creeps[i].name)
-            }
-        }
-    }
-}
+};
 
 // ########### EXTENSION SECTION #############################################
 Room.prototype.initDynamicStructures = function() {
@@ -237,7 +120,7 @@ Room.prototype.loadStructures = function() {
         this.extensions[extensionNr] = Game.getObjectById(extensionId);
     }
     this.controllerLink = Game.getObjectById(this.memory.controllerLinkId);
-}
+};
 Room.prototype.structuresAction = function() {
     for (var i in this.sources) {
         var linkId = this.sources[i].memory.linkId;
@@ -249,7 +132,7 @@ Room.prototype.structuresAction = function() {
             }
         }
     }
-}
+};
 
 // ########### CONSTRUCTION SECTION ###########################################
 Room.prototype.initDynamicConstructions = function() {
@@ -263,39 +146,6 @@ Room.prototype.loadConstructions = function() {
     this.constructions = [];
     for (var i in this.memory.constructionIds) {
         this.constructions[i] = (Game.getObjectById(this.memory.constructionIds[i]));
-    }
-}
-Room.prototype.constructionsWorkerAction = function() {
-    var builderCount = 0.0;
-    for (var i in this.constructions) {
-        var construction = this.constructions[i];
-        if (construction) {
-            switch (construction.structureType) {
-                case STRUCTURE_ROAD:      builderCount += 0.2;
-                    break; 
-                case STRUCTURE_EXTENSION: builderCount += 5;
-                    break;
-                default:                  ++ builderCount;
-                    break;
-            }
-        }
-    }
-
-    var creeps = this.find(FIND_MY_CREEPS, 
-        { filter: function (creep) { return creep.memory.role == 'builder' } }
-    );
-    var oldBuildersCount = creeps.length;
-
-    if (oldBuildersCount < builderCount) {
-        creeps = this.findSearchingDefaultWorkerFull();
-        if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
-        for(var i = 0; i < builderCount - oldBuildersCount; ++ i) {
-            if (creeps[i]) {
-                creeps[i].memory.role = 'builder';
-                creeps[i].memory.phase = 'build';
-                LOG_DETAIL_THIS("add a builder " + creeps[i].name)
-            }
-        }
     }
 }
 Room.prototype.repairerWorkerAction = function() {

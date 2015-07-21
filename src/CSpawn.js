@@ -3,13 +3,14 @@
 Spawn.prototype.spawn = function(body, bodyParts) {
     var result = this.createCreep(bodyParts);
     if(_.isString(result)) {
-        this.room.logCompact('Spawning: ' + result + " with Body: " + bodyParts + " / new sum: " + (this.room.creeps.length + 1));
-        if (body == BODY_DEFAULT) Memory.creeps[result].role = 'harvester';
+        this.room.logCompact('Spawning: ' + result + " with Body: " + bodyParts 
+                + " / new sum: " + (this.room.creeps.length + 1));
         if (body == BODY_RANGER) Memory.creeps[result].role = 'guard';
         Memory.creeps[result].body = body;
     } else {
         if (result != ERR_BUSY)
-            this.room.logCompact('Spawn error: ' + result + ' while try to spawn ' + JSON.stringify(bodyParts));
+            this.room.logCompact('Spawn error: ' + result 
+                + ' while try to spawn ' + JSON.stringify(bodyParts));
     }
 }
 

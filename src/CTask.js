@@ -102,6 +102,23 @@ CTask.prototype.getCode = function() {
     return this.code;
 };
 
+CTask.prototype.getPrio = function() {
+    if (this.prio === undefined) {
+        switch (this.type) {
+            case TASK_HARVEST: this.prio = 50; break; 
+            case TASK_COLLECT: this.prio = 40; break; 
+            case TASK_DELIVER: this.prio = 55; break; 
+            case TASK_UPGRADE: this.prio = 10; break; 
+            case TASK_BUILD:   this.prio = 20; break; 
+            case TASK_REPAIR:  this.prio = 30; break; 
+            default:
+                this.logError('task type ' + type + ' not available.');
+                return;
+        }
+    }
+    return this.prio;
+};
+
 // ########### CTask methods ############################################
 
 /**
@@ -129,22 +146,18 @@ CTask.prototype.assignmentCreate = function(creep) {
     var qty = 0;
     switch (this.type) {
         case TASK_HARVEST:
-            if (creep.getBodyType() == BODY_HARVESTER)  qty = this.qty;
-            else                                        qty = 1;
+            if (creep.getBodyType() === BODY_HARVESTER)     qty = this.qty;
+            else                                            qty = 1;
             break;
         case TASK_COLLECT: qty = creep.energyCapacity - creep.energy;   break; 
         case TASK_DELIVER: qty = creep.energy;                          break; 
-        case TASK_UPGRADE: qty = qty = 1;                               break; 
+        case TASK_UPGRADE: qty = 1;                                     break; 
         case TASK_BUILD:
-        case TASK_REPAIR:
-            if (creep.getBodyType() == BODY_HARVESTER)  qty = this.qty;
-            else                                        qty = 1;
-            break;
+        case TASK_REPAIR:  qty = 1;                                     break;
         default:
             this.logError("Can't assign task, type " + type + " not available.");
             return;
     }
-    creep.taskAssign(this);
     if (qty > this.qty) qty = this.qty;
     this.assignments[creep.name] = qty;
     delete this.qtyAssigned;
@@ -189,4 +202,11 @@ CTask.prototype.update = function(task) {
     this.qty = task.qty;
     this.energySource = task.energySource;
     this.energySink = task.energySink;
+};
+
+/**
+ * Delete this task from room's task collection
+ */
+CTask.prototype.delete = function() {
+    this.getRoom().getTasks().del(this);
 };

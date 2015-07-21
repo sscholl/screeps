@@ -1,90 +1,40 @@
-// ######## Finds - RoomPosition ##############################################
-RoomPosition.prototype.findEnemiesInAttackRange = function(opts) {
-    return this.findInRange(FIND_HOSTILE_CREEPS, 4, opts);
-};
-RoomPosition.prototype.findEnemyStructuresInAttackRange = function(opts) {
-    return this.findInRange(FIND_HOSTILE_STRUCTURES, 6, opts);
-};
+#include "CRoomPosition_Find.js"
 
-RoomPosition.prototype.findClosestEmptyExtension = function(opts) {
-    return this.findClosest(FIND_MY_STRUCTURES, {
-        filter: function(object) {return object.structureType == STRUCTURE_EXTENSION && object.energy != object.energyCapacity;}
-    });
-};
-RoomPosition.prototype.findClosestEnergyContainer = function(opts) {
-    var spawn = this.findClosest(FIND_MY_SPAWNS, {
-        filter: function(object) { return object.energy > 0;}
-    });
-    var extension = this.findClosest(FIND_MY_STRUCTURES, {
-        filter: function(object) { return object.structureType == STRUCTURE_EXTENSION && object.energy > 0;}
-    });
-    if ( spawn )        rangeS = this.getRangeTo(spawn);
-    else                rangeS = 99999999;
-    if ( extension )    rangeE = this.getRangeTo(extension);
-    else                rangeE = 99999999;
-    if (!extension && !spawn)                   return this.findClosest(FIND_MY_SPAWNS);
-    else if (extension && rangeE <= rangeS )    return extension;
-    else if (spawn && rangeS <= rangeE )        return spawn;
-    else                                        console.log("error while findng a energy source");
-};
-
-RoomPosition.prototype.findInRangeLink = function(range) {
-    return this.findInRange(FIND_MY_STRUCTURES, range, {
-        filter: function(object) {return object.structureType == STRUCTURE_LINK}
-    });
-};
-
-RoomPosition.prototype.findClosestSearchingDefaultWorker = function() {
-    return this.findClosest(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.body == BODY_DEFAULT && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
-            }
-        }
-    );
-}
-RoomPosition.prototype.findClosestSearchingHarvester = function() {
-    return this.findClosest(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.body == BODY_HARVESTER && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
-            }
-        }
-    );
-}
-RoomPosition.prototype.findClosestSearchingUpgrader = function() {
-    return this.findClosest(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.body == BODY_UPGRADER && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
-            }
-        }
-    );
+RoomPosition.prototype.getRoom = function() {
+    return Game.rooms[this.roomName];
 }
 
+// ######## RoomPosition ##############################################
+RoomPosition.prototype.getSpotsCnt = function() {
+    // seach all available spots of the source
+    //var positions = this.room.lookForAtArea('terrain', this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1);
 
+    var cnt = 0;
 
+    // add this spots to this.spots
+    for (var y = this.y - 1; this.y + 1 >= y; ++ y) {
+        for (var x = this.x - 1; this.x + 1 >= x; ++ x) {
+            if (x === this.x && y === this.y) continue;
+            var pos = this.getRoom().lookAt(x, y); // @todo this operation consumes approx. 1.3 cpu
+            var isFree = true;
 
-
-
-RoomPosition.prototype.findClosestCreepEmpty = function(_bodyType) {
-    var bodyType = _bodyType;
-    return this.findClosest(FIND_MY_CREEPS, { filter:
-        function (creep) {
-            return creep.memory.body === bodyType 
-                    && creep.memory.phase == PHASE_SEARCH 
-                    && creep.energy <= creep.energyCapacity / 2
+            // if any of the terrain fields are a wall, the spot is not a real spot
+            for (var i in pos) {
+                if (
+                    (pos[i].type === 'terrain' 
+                        && pos[i].terrain !== 'plain'
+                        && pos[i].terrain !== 'swamp'
+                    ) || (pos[i].type === 'structure'
+                        && pos[i].structure
+                        && pos[i].structure.structureType !== 'road'
+                        && pos[i].structure.structureType !== 'rampart'
+                    )
+                ) {
+                    isFree = false;
+                }
+            }
+            if (isFree) ++ cnt;
         }
-    });
-};
-
-RoomPosition.prototype.findClosestCreepFull = function(_bodyType) {
-    var bodyType = _bodyType;
-    return this.findClosest(FIND_MY_CREEPS, { filter:
-        function (creep) {
-            return creep.memory.body == bodyType 
-                    && creep.memory.phase == PHASE_SEARCH 
-                    && creep.energy > creep.energyCapacity / 2
-        }
-    });
+    }
+    return cnt;
 };
