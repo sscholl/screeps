@@ -106,7 +106,7 @@ CTask.prototype.getPrio = function() {
     if (this.prio === undefined) {
         switch (this.type) {
             case TASK_HARVEST: this.prio = 50; break; 
-            case TASK_COLLECT: this.prio = 40; break; 
+            case TASK_COLLECT: this.prio = 60; break; 
             case TASK_DELIVER: this.prio = 55; break; 
             case TASK_UPGRADE: this.prio = 10; break; 
             case TASK_BUILD:   this.prio = 20; break; 
@@ -129,9 +129,19 @@ CTask.prototype.assignmentSearch = function() {
     var creep = null;
     var task = this;
     _.forEach(this.getBodyTypes(), function(bodyType) {
+        var room = task.getPos().getRoom();
         if (!creep) {
-            if (task.energySource)  creep = task.getPos().findClosestCreepEmpty(bodyType);
-            else                    creep = task.getPos().findClosestCreepFull(bodyType);
+            if (task.energySource)  {
+                if (room.hasCreepEmpty(bodyType)) {
+                    creep = task.getPos().findClosestCreepEmpty(bodyType);
+                    if (!(creep instanceof Creep)) room.hasCreepEmpty(bodyType, true);
+                }
+            } else {
+                if (room.hasCreepFull(bodyType)) {
+                    creep = task.getPos().findClosestCreepFull(bodyType);
+                    if (!(creep instanceof Creep)) room.hasCreepFull(bodyType, true);
+                }
+            }
         }
     });
     return creep;

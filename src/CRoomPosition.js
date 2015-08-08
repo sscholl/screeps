@@ -38,3 +38,14 @@ RoomPosition.prototype.getSpotsCnt = function() {
     }
     return cnt;
 };
+
+RoomPosition.prototype.getInRangePositions = function(distance) {
+    var poss = new Array(9);
+    var i = 0;
+    for (var y = this.y - distance; y < this.y + distance; ++ y) {
+        for (var x = this.x - distance; x < this.x + distance; ++ x) {
+            poss[i ++] = new RoomPosition(x,y,this.roomName);
+        }
+    }
+    return poss;
+}

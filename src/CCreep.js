@@ -36,8 +36,9 @@ Creep.prototype.run = function() {
 Creep.prototype.movePredefined = function(targetPos, opts, onPos) {
     if (!this.pos.inRangeTo(targetPos, 1) || onPos) {
         if (!opts) opts = {};
-        opts.reusePath = 0;
-        this.moveTo(targetPos, opts); 
+        opts.reusePath = 3;
+        opts.avoid = this.room.getUnsavePostions();
+        this.moveTo(targetPos, opts);
     }
 }
 

@@ -21,7 +21,7 @@ Room.prototype.run = function() {
     TIMER_END(TIMER_MODULE_ROOM, 'load')
     
 
-    if (this.memory.timer % 30 == 0) {
+    if (this.memory.timer % 15 == 0) {
         TIMER_BEGIN_(TIMER_MODULE_ROOM, 'dynamic_init', 'of room ' + this.name)
             this.initDynamicSources();
             this.initDynamicConstructions();
@@ -29,15 +29,20 @@ Room.prototype.run = function() {
         TIMER_END(TIMER_MODULE_ROOM, 'dynamic_init')
     }
 
-    this.initTasks();
+    if (this.memory.timer === 600) {
+        this.initTasksStatic();
+    } else if (this.memory.timer % 30 == 0) {
+        this.initTasksDynamic2();
+    } else if (this.memory.timer % 5 == 0) {
+        this.initTasksDynamic();
+    }
 
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'actions', 'of room ' + this.name)
-        this.structuresAction();
-
-        this.repairerWorkerAction();
-
+        var withHandshake = this.memory.timer % 15 == 0;
+        this.assignTasks(withHandshake);
+this.repairerWorkerAction();
+        this.structuresAction(); // LINK action
         this.guardAction();
-
         this.spawnAction();
     TIMER_END(TIMER_MODULE_ROOM, 'actions')
 
@@ -265,4 +270,31 @@ Room.prototype.logDetail = function(message) {
 }
 Room.prototype.logError = function(message) {
     logError('[' + this.name + "] " + message);
+}
+
+Room.prototype.getUnsavePostions = function() {
+    if (this.poss === undefined) {
+        this.poss = [];
+        var creeps = this.getHostileCreeps();
+        for (var i in creeps) {
+            var creep = creeps[i];
+            this.poss = this.poss.concat(creep.pos.getInRangePositions(3));
+        }
+    }
+    return this.poss;
+}
+
+Room.prototype.hasCreepEmpty = function(bodyType, setNoCreep) {
+    if (this.noCreepEmpty === undefined)
+        this.noCreepEmpty = [];
+    if (setNoCreep) 
+        this.noCreepEmpty[bodyType] = true;
+    return this.noCreepEmpty[bodyType] === undefined;
+}
+Room.prototype.hasCreepFull = function(bodyType, setNoCreep) {
+    if (this.noCreepFull === undefined)
+        this.noCreepFull = [];
+    if (setNoCreep) 
+        this.noCreepFull[bodyType] = true;
+    return this.noCreepFull[bodyType] === undefined;
 }
