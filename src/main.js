@@ -47,7 +47,7 @@ TIMER_END(TIMER_MODULE_MAIN, 'room')
 TIMER_BEGIN(TIMER_MODULE_MAIN, 'creeps')
 for(var creepName in Game.creeps) {
     var creep = Game.creeps[creepName];
-    //TIMER_BEGIN_(TIMER_MODULE_MAIN, 'creep', creep.name + ' role:' + creep.memory.role);
+    //TIMER_BEGIN_(TIMER_MODULE_MAIN, 'creep', creep.name);
 
         creep.run();
     //TIMER_END(TIMER_MODULE_MAIN, 'creep');

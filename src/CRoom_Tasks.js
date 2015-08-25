@@ -21,7 +21,7 @@ Room.prototype.initTasksStatic = function() {
             );
         }
     }
-    if (this.controller instanceof Structure) {
+    if (this.controller instanceof Structure && this.controller.my) {
         this.createTask(
             TASK_UPGRADE,
             this.controller.id, 
@@ -66,6 +66,17 @@ Room.prototype.initTasksDynamic = function() {
                         spawn.energyCapacity - spawn.energy
                 );
             }
+        }
+    }
+        LOG_DEBUG(this.storage)
+    if (this.storage instanceof Structure) {
+        if (this.storage.store.energy < this.storage.storeCapacity) {
+            this.createTask(
+                TASK_DELIVER, 
+                this.storage.id, 
+                this.storage.pos, 
+                this.storage.storeCapacity - this.storage.store.energy
+            );
         }
     }
     TIMER_END(TIMER_MODULE_ROOM, 'initTasksDynamic')
@@ -149,6 +160,7 @@ Room.prototype.assignTasks = function(withHandshake) {
                 task.assignmentCreate(creep);
                 creep.taskAssign(task);
             } else {
+                LOG_DEBUG("no creep found")
                 break;
             }
         }

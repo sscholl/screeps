@@ -43,7 +43,6 @@ Creep.prototype.taskAssign = function(task) {
     this.getTaskCodes().push(task.getCode());
     LOG_DEBUG(this.getTaskCodes())
     this.memory.phase = PHASE_TASK;
-this.memory.role = 'NOROLE';
 };
 
 Creep.prototype.taskDisassign = function(task) {
@@ -76,13 +75,19 @@ Creep.prototype.hasTask = function(task) {
 };
 
 Creep.prototype.taskHarvest = function() {
-    if (this.memory.body === BODY_DEFAULT && this.energy >= this.energyCapacity) {
+    if (this.memory.body === BODY_DEFAULT && this.carry.energy >= this.carryCapacity) {
         this.taskDisassign();
         return;
     }
     var source = this.getCurrentTask().getTarget();
     if ( source !== null ) {
-        this.movePredefined(source.pos);
+        if (this.carry.energy < this.carryCapacity * 0.8 || !source.memory.linkId) {
+            this.movePredefined(source.pos);
+        } else {
+            var link = Game.getObjectById(source.memory.linkId)
+            this.movePredefined(link.pos);
+            this.transferEnergy(link);
+        }
         this.harvest(source);
     } else {
         this.logError("target not valid");
@@ -92,7 +97,7 @@ Creep.prototype.taskHarvest = function() {
 };
 
 Creep.prototype.taskCollect = function() {
-    if (this.energy >= this.energyCapacity) {
+    if (this.carry.energy >= this.carryCapacity) {
         this.taskDisassign();
         return;
     }
@@ -108,12 +113,23 @@ Creep.prototype.taskCollect = function() {
 };
 
 Creep.prototype.taskDeliver = function() {
-    if (this.energy <= 0) {
+    if (this.carry.energy <= 0) {
         this.taskDisassign();
         return;
     }
     var target = this.getCurrentTask().getTarget();
-    if (target !== null && target.energy < target.energyCapacity) {
+    if (
+        target !== null 
+        && (
+            (target.structureType === STRUCTURE_STORAGE
+                && target.store.energy < target.storeCapacity)
+            || (
+                (target.structureType === STRUCTURE_SPAWN
+                    || target.structureType === STRUCTURE_EXTENSION
+                    || target.structureType === STRUCTURE_LINK)
+                && target.energy < target.energyCapacity)
+        )
+    ) {
         this.movePredefined(target.pos);
         this.transferEnergy(target);
     } else {
@@ -124,7 +140,7 @@ Creep.prototype.taskDeliver = function() {
 };
 
 Creep.prototype.taskUpgrade = function() {
-    if (this.energy <= 0) {
+    if (this.carry.energy <= 0) {
         this.taskDisassign();
         return;
     }
@@ -141,7 +157,7 @@ Creep.prototype.taskUpgrade = function() {
 };
 
 Creep.prototype.taskBuild = function() {
-    if (this.energy <= 0) {
+    if (this.carry.energy <= 0) {
         this.taskDisassign();
         return;
     }
@@ -161,7 +177,7 @@ Creep.prototype.taskBuild = function() {
 };
 
 Creep.prototype.taskRepair = function() {
-    if (this.energy <= 0) {
+    if (this.carry.energy <= 0) {
         this.taskDisassign();
         return;
     }

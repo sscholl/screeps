@@ -74,7 +74,7 @@ RoomPosition.prototype.findClosestCreepEmpty = function(_bodyType) {
             return creep.memory.body === bodyType 
                     && (creep.memory.phase === PHASE_SEARCH 
                         || creep.memory.phase === undefined)
-                    && creep.energy <= creep.energyCapacity * 0.5;
+                    && creep.carry.energy < 50; //<= creep.carryCapacity * 0.5;
         }
     });
 };
@@ -86,7 +86,7 @@ RoomPosition.prototype.findClosestCreepFull = function(_bodyType) {
             return creep.memory.body === bodyType 
                     && (creep.memory.phase === PHASE_SEARCH 
                         || creep.memory.phase === undefined)
-                    && creep.energy > creep.energyCapacity * 0.25;
+                    && creep.carry.energy >= 50; //> creep.carryCapacity * 0.25;
         }
     });
 };

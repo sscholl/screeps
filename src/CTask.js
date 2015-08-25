@@ -73,13 +73,13 @@ CTask.prototype.getQty = function() {
  * @return {Number} 
  */
 CTask.prototype.getQtyAssigned = function() {
-    if (this.qtyAssigned === undefined) {
+    //if (this.qtyAssigned === undefined) {
         var qtyAssigned = 0;
         _.forEach(this.getAssignments(), function(assignment) {
             qtyAssigned += assignment;
         });
         this.qtyAssigned = qtyAssigned;
-    }
+    //}
     return this.qtyAssigned;
 };
 CTask.prototype.getAssignments = function() {
@@ -107,7 +107,12 @@ CTask.prototype.getPrio = function() {
         switch (this.type) {
             case TASK_HARVEST: this.prio = 50; break; 
             case TASK_COLLECT: this.prio = 60; break; 
-            case TASK_DELIVER: this.prio = 55; break; 
+            case TASK_DELIVER:
+                if (this.getTarget().structureType === STRUCTURE_STORAGE)
+                    this.prio = 5; 
+                else
+                    this.prio = 55; 
+                break; 
             case TASK_UPGRADE: this.prio = 10; break; 
             case TASK_BUILD:   this.prio = 20; break; 
             case TASK_REPAIR:  this.prio = 30; break; 
@@ -159,8 +164,8 @@ CTask.prototype.assignmentCreate = function(creep) {
             if (creep.getBodyType() === BODY_HARVESTER)     qty = this.qty;
             else                                            qty = 1;
             break;
-        case TASK_COLLECT: qty = creep.energyCapacity - creep.energy;   break; 
-        case TASK_DELIVER: qty = creep.energy;                          break; 
+        case TASK_COLLECT: qty = creep.carryCapacity - creep.carry.energy;   break; 
+        case TASK_DELIVER: qty = creep.carry.energy;                          break; 
         case TASK_UPGRADE: qty = 1;                                     break; 
         case TASK_BUILD:
         case TASK_REPAIR:  qty = 1;                                     break;

@@ -1,12 +1,6 @@
 // include all creep files
 #include "CCreepBodyDefault.js"
-#include "CCreepBuilder.js"
-#include "CCreepCollector.js"
-#include "CCreepHarvester.js"
-#include "CCreepRepairer.js"
-#include "CCreepUpgrader.js"
 
-#include "CCreepXHarvester.js"
 #include "CCreepXUpgrader.js"
 
 #include "CCreepXGuard.js"
@@ -16,15 +10,8 @@
 
 Creep.prototype.run = function() {
     var body = this.memory.body;
-    var role = this.memory.role;
-    if (role === 'harvester')           this.runDefaultHarvester();
-    else if (role === 'builder')        this.runBuilder();
-    else if (role === 'collector')      this.runCollector();
-    else if (role === 'repairer')       this.runRepairer();
-    else if (role === 'upgrader')       this.runDefaultUpgrader();
-
-    else if (body === BODY_DEFAULT)     this.runDefault();
-    else if (body === BODY_HARVESTER)     this.runDefault();
+    if (body === BODY_DEFAULT)     this.runDefault();
+    else if (body === BODY_HARVESTER)   this.runDefault();
     else if (body === BODY_UPGRADER)    this.runUpgrader();
     else if (body === BODY_HEALER)      this.runHealer();
     else if (body === BODY_RANGER)      this.runRanger();

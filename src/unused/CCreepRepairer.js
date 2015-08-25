@@ -5,7 +5,7 @@ Creep.prototype.runRepairer = function() {
             this.moveAround();
     this.memory.phase = PHASE_SEARCH;
     return;
-    if(this.energy == 0) {
+    if(this.carry.energy == 0) {
         this.movePredefined(this.room.defaultSpawn);
         if (this.room.defaultSpawn.energy >= 50) this.room.defaultSpawn.transferEnergy(this);
         else {

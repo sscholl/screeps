@@ -33,7 +33,7 @@ Room.prototype.run = function() {
         this.initTasksStatic();
     } else if (this.memory.timer % 30 == 0) {
         this.initTasksDynamic2();
-    } else if (this.memory.timer % 5 == 0) {
+    } else if (this.memory.timer % 1 == 0) {
         this.initTasksDynamic();
     }
 
@@ -104,7 +104,7 @@ Room.prototype.initDynamicSources = function() {
     }
 };
 
-// ########### EXTENSION SECTION #############################################
+// ########### STRUCTURES SECTION #############################################
 Room.prototype.initDynamicStructures = function() {
     this.memory.extensionIds = [];
 
@@ -115,8 +115,15 @@ Room.prototype.initDynamicStructures = function() {
     for (var extensionNr in this.extensions)
         this.memory.extensionIds[extensionNr] = this.extensions[extensionNr].id;
 
-    var link = this.controller.pos.findInRangeLink(2);
-    if (link[0] != undefined) this.memory.controllerLinkId = link[0].id;
+    var storages = this.controller.pos.findInRange(
+        FIND_MY_STRUCTURES, 2, {filter: {structureType: STRUCTURE_STORAGE}}
+    );
+    if (storages[0] != undefined) this.memory.controllerStorageId = storages[0].id;
+
+    if (this.getStorage() instanceof Structure) {
+        var links = this.getStorage().pos.findInRangeLink(2);
+        if (links[0] != undefined) this.memory.storageLinkId = links[0].id;
+    }
 }
 Room.prototype.loadStructures = function() {
     this.extensions = [];
@@ -124,21 +131,35 @@ Room.prototype.loadStructures = function() {
         var extensionId = this.memory.extensionIds[extensionNr];
         this.extensions[extensionNr] = Game.getObjectById(extensionId);
     }
-    this.controllerLink = Game.getObjectById(this.memory.controllerLinkId);
+    this.storageLink = Game.getObjectById(this.memory.storageLinkId);
+    this.controllerStorage = Game.getObjectById(this.memory.controllerStorageId);
+
 };
 Room.prototype.structuresAction = function() {
     for (var i in this.sources) {
         var linkId = this.sources[i].memory.linkId;
         if (linkId) {
             var link = Game.getObjectById(linkId);
-            if (link.isFull() && this.controllerLink.isEmpty()) {
-                link.transferEnergy(this.controllerLink);
+            if (link.isFull() && this.storageLink.isEmpty()) {
+                link.transferEnergy(this.storageLink);
                 break; // do not transfer from 2 links at the same time
             }
         }
     }
 };
-
+Room.prototype.getStorage = function() {
+    if (this.storage === undefined) {
+        var storages = this.find(FIND_MY_STRUCTURES, 
+            {filter: {structureType: STRUCTURE_STORAGE}}
+        );
+        if (storages[0] != undefined) {
+            this.storage = storages[0];
+        } else {
+            this.storage = false;
+        }
+    }
+    return this.storage;
+}
 // ########### CONSTRUCTION SECTION ###########################################
 Room.prototype.initDynamicConstructions = function() {
     this.memory.constructionIds = [];
@@ -154,6 +175,9 @@ Room.prototype.loadConstructions = function() {
     }
 }
 Room.prototype.repairerWorkerAction = function() {
+LOG_DEBUG("do not need repairer")
+return;
+
     var repairerCount = 3;
 
     var creeps = this.find(FIND_MY_CREEPS, 
@@ -170,7 +194,6 @@ Room.prototype.repairerWorkerAction = function() {
         if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
         for(var i = 0; i < repairerCount - oldRepairersCount; ++ i) {
             if (creeps[i]) {
-                creeps[i].memory.role = 'repairer';
                 creeps[i].memory.phase = 'repair';
                 LOG_DETAIL_THIS("add a repairer " + creeps[i].name)
             }
@@ -233,17 +256,17 @@ Room.prototype.spawnAction = function() {
             spawn.spawnHarvester();
         } else if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
             spawn.spawnDefault();
-        } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2
+        } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2 + 2
             && (this.creepsHealer.length < 2 || this.creepsRanger.length > this.hostileSpawns.length)
         ) {
             spawn.spawnHealer();
-        } else if ( this.creepsRanger.length < this.hostileSpawns.length * 4
+        } else if ( this.creepsRanger.length < this.hostileSpawns.length * 4 + 4
             && this.extensions.length >= 20
         ) {
             spawn.spawnRanger();
-        } else if ( this.controllerLink
-            && this.creepsUpgrader.length < this.controller.level - 4
-            && this.extensions.length >= 23
+        } else if ( this.controllerStorage
+            && this.creepsUpgrader.length < 3
+            && this.extensions.length >= 20
         ) {
             spawn.spawnUpgrader();
         } else {

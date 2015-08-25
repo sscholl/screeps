@@ -7,9 +7,10 @@ Creep.prototype.runHarvester = function() {
         this.moveAround();
     }
     if (this.memory.phase == PHASE_HARVEST) {
+        LOG_DETAIL_THIS("worker " + source.memory.linkId)
         var source = this.room.sources[this.memory.harvesterSourceId];
         if ( source != null ) {
-            if (this.energy < this.energyCapacity || !source.memory.linkId) {
+            if (this.carry.energy < this.carryCapacity || !source.memory.linkId) {
                 this.movePredefined(source.pos);
             } else {
                 var link = Game.getObjectById(source.memory.linkId)

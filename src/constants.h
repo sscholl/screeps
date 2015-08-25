@@ -18,3 +18,5 @@
 #define TASK_UPGRADE 'T_UPGRADE' // sink: upgrade controller
 #define TASK_BUILD   'T_BUILD'   // sink: build a construction site
 #define TASK_REPAIR  'T_REPAIR'  // sink: repair a structure
+
+#define TASK_MOVE  'T_MOVE'

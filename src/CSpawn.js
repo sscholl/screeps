@@ -48,10 +48,8 @@ Spawn.prototype.spawnDefault = function() {
 
 Spawn.prototype.spawnHarvester = function() {
     var bodyParts;
-    if (this.room.extensions.length >= 10) {
-        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];
-    } else if (this.room.extensions.length >= 8) {
-        bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    if (this.room.extensions.length >= 6) {
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
     } else if (this.room.extensions.length >= 5) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
     }
@@ -59,7 +57,21 @@ Spawn.prototype.spawnHarvester = function() {
 }
 
 Spawn.prototype.spawnUpgrader = function() {
-    var bodyParts = [ WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, CARRY, MOVE ];
+    if (this.room.extensions.length >= 20) {
+        var bodyParts = [ 
+            WORK, WORK, WORK, WORK, WORK, //500
+            WORK, WORK, WORK, WORK, WORK, //500
+            MOVE, MOVE, MOVE, MOVE, CARRY, MOVE //300
+        ];
+    } else if (this.room.extensions.length >= 30) {
+        var bodyParts = [ 
+            WORK, WORK, WORK, WORK, WORK,
+            WORK, WORK, WORK, WORK, WORK,
+            WORK, WORK, WORK, WORK, WORK, //500
+            MOVE, MOVE, MOVE, CARRY, MOVE //250
+        ];
+
+    }
     this.spawn(BODY_UPGRADER, bodyParts);
 }
 
