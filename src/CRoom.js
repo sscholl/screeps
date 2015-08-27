@@ -33,7 +33,7 @@ Room.prototype.run = function() {
         this.initTasksStatic();
     } else if (this.memory.timer % 30 == 0) {
         this.initTasksDynamic2();
-    } else if (this.memory.timer % 1 == 0) {
+    } else if (this.memory.timer % 5 == 0) {
         this.initTasksDynamic();
     }
 
@@ -56,12 +56,9 @@ Room.prototype.initSources = function() {
         this.memory.sources = {};
 
     for (var source of this.find(FIND_SOURCES)) {
-        if (!this.memory.sources[source.id]) {
-            this.memory.sources[source.id] = {};
-            this.memory.sources[source.id].id = source.id;
-        }
-        source.setMemory();
-        source.initSpots();
+        if (!this.memory.sources[source.id])
+            this.memory.sources[source.id] = {id: source.id};
+        source.getSpotsCnt();
     }
 
     this.memory.hostileSpawnIds = [];
@@ -75,7 +72,6 @@ Room.prototype.loadSources = function() {
     this.sources = {};
     for (var id in this.memory.sources) {
         this.sources[id] = Game.getObjectById(id);
-        this.sources[id].setMemory();
     }
 
     this.hostileSpawns = [];
@@ -90,17 +86,17 @@ Room.prototype.initDynamicSources = function() {
     for (var id in this.sources) {
         var source = this.sources[id];
 
-        source.memory.isSave = (
+        source.getMemory().isSave = (
                 this.creepsHealer.length >= 4  * this.hostileSpawns.length
                 && this.creepsRanger.length >= 3 * this.hostileSpawns.length
-            ) || !source.memory.hasHostileSpawn;
-        if (source.memory.isSave) {
+            ) || !source.getMemory().hasHostileSpawn;
+        if (source.getMemory().isSave) {
             this.memory.sourcesSaveCount ++;
-            this.memory.sourceSpotCount += source.memory.spots.length;
+            this.memory.sourceSpotCount += source.getSpotsCnt();
         }
 
         var link = source.pos.findInRangeLink(2);
-        if (link[0] != undefined) source.memory.linkId = link[0].id;
+        if (link[0] != undefined) source.getMemory().linkId = link[0].id;
     }
 };
 
@@ -137,7 +133,7 @@ Room.prototype.loadStructures = function() {
 };
 Room.prototype.structuresAction = function() {
     for (var i in this.sources) {
-        var linkId = this.sources[i].memory.linkId;
+        var linkId = this.sources[i].getMemory().linkId;
         if (linkId) {
             var link = Game.getObjectById(linkId);
             if (link.isFull() && this.storageLink.isEmpty()) {
@@ -221,23 +217,26 @@ Room.prototype.guardAction = function() {
 Room.prototype.getDefaultHarvesterCount = function() {
     if (this.defaultHarvesterCount == undefined) {
         this.defaultHarvesterCount = 0;
-        for (var id in this.sources) {
-            var source = this.sources[id];
-            if (source.memory.isSave)
-                if (source.memory.creepName) ++ this.defaultHarvesterCount;
-                else this.defaultHarvesterCount += source.memory.spots.length;
+        if (this.creepsHarvester.length < 1) {
+            for (var id in this.sources) {
+                var source = this.sources[id];
+                if (source.getMemory().isSave)
+                    if (source.getMemory().creepName) ++ this.defaultHarvesterCount;
+                    else this.defaultHarvesterCount += source.getSpotsCnt();
+            }
         }
     }
     return this.defaultHarvesterCount;
 }
 Room.prototype.getDefaultUpgraderCount = function() {
-    return 1;
+    if (this.controllerStorage instanceof Structure) return 0;
+    else return 1;
 }
 Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount();
 }
 Room.prototype.creepsRequiredAllWork = function() {
-    return this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount() + 2 + 1; //harvester, upgrader, repairer
+    return (2*this.memory.sourcesSaveCount) + this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount(); //harvester, upgrader, repairer
 }
 
 
@@ -256,16 +255,16 @@ Room.prototype.spawnAction = function() {
             spawn.spawnHarvester();
         } else if (this.creepsDefault.length < this.creepsRequiredAllWork()) {
             spawn.spawnDefault();
-        } else if ( this.creepsHealer.length < this.hostileSpawns.length * 2 + 2
-            && (this.creepsHealer.length < 2 || this.creepsRanger.length > this.hostileSpawns.length)
+        } else if ( this.creepsHealer.length < 2
+            && this.extensions.length >= 20
         ) {
             spawn.spawnHealer();
-        } else if ( this.creepsRanger.length < this.hostileSpawns.length * 4 + 4
+        } else if ( this.creepsRanger.length < 2
             && this.extensions.length >= 20
         ) {
             spawn.spawnRanger();
-        } else if ( this.controllerStorage
-            && this.creepsUpgrader.length < 3
+        } else if ( this.controllerStorage instanceof Structure
+            && this.creepsUpgrader.length < 1
             && this.extensions.length >= 20
         ) {
             spawn.spawnUpgrader();

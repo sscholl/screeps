@@ -109,7 +109,7 @@ CTask.prototype.getPrio = function() {
             case TASK_COLLECT: this.prio = 60; break; 
             case TASK_DELIVER:
                 if (this.getTarget().structureType === STRUCTURE_STORAGE)
-                    this.prio = 5; 
+                    this.prio = 15; 
                 else
                     this.prio = 55; 
                 break; 

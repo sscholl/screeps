@@ -81,10 +81,10 @@ Creep.prototype.taskHarvest = function() {
     }
     var source = this.getCurrentTask().getTarget();
     if ( source !== null ) {
-        if (this.carry.energy < this.carryCapacity * 0.8 || !source.memory.linkId) {
+        if (this.carry.energy < this.carryCapacity * 0.8 || !source.getMemory().linkId) {
             this.movePredefined(source.pos);
         } else {
-            var link = Game.getObjectById(source.memory.linkId)
+            var link = Game.getObjectById(source.getMemory().linkId)
             this.movePredefined(link.pos);
             this.transferEnergy(link);
         }

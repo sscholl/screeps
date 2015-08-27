@@ -12,12 +12,12 @@ Room.prototype.initTasksStatic = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'initTasksStatic', 'of room ' + this.name)
     for (var id in this.sources) {
         var source = this.sources[id];
-        if (source.memory.isSave) {
+        if (source.getMemory().isSave) {
             this.createTask(
                     TASK_HARVEST, 
                     source.id, 
                     source.pos, 
-                    source.memory.spots.length
+                    source.getSpotsCnt()
             );
         }
     }
@@ -103,7 +103,7 @@ Room.prototype.initTasksDynamic2 = function() {
 }
 
 Room.prototype.createTask = function(type, targetId, pos, qty) {
-    TIMER_BEGIN_(TIMER_MODULE_ROOM, 'createTask', 'of room ' + this.name)
+    TIMER_BEGIN_(TIMER_MODULE_ROOM, 'createTask', 'in room ' + this.name)
     var energySource = false;
     switch (type) {
         case TASK_HARVEST:
@@ -140,7 +140,7 @@ Room.prototype.assignTasks = function(withHandshake) {
     var taskList = tasks.getList();
     for (var i in taskList) { //taskList[i] is the taskCode
         var task = tasks.get(taskList[i]);
-        TIMER_BEGIN_(TIMER_MODULE_ROOM, 'assignTask', task.getCode())
+        //TIMER_BEGIN_(TIMER_MODULE_ROOM, 'assignTask', task.getCode())
 //LOG_DEBUG(task.getCode())
         var assignments = task.getAssignments();
         if (withHandshake) {
@@ -164,7 +164,7 @@ Room.prototype.assignTasks = function(withHandshake) {
                 break;
             }
         }
-        TIMER_END(TIMER_MODULE_ROOM, 'assignTask')
+        //TIMER_END(TIMER_MODULE_ROOM, 'assignTask')
     }
 
     TIMER_END(TIMER_MODULE_ROOM, 'assignTasks')

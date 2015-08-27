@@ -17,28 +17,17 @@ Spawn.prototype.spawn = function(body, bodyParts) {
 Spawn.prototype.spawnDefault = function() {
     var bodyParts;
     if (
-        this.room.creepsDefault.length >= this.room.creepsRequired() / 1 
+        this.room.creepsDefault.length >= this.room.creepsRequired() * 0.5
         && this.room.extensions.length >= 9
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
-    } else if (
-        this.room.creepsDefault.length >= this.room.creepsRequired() / 1.5 
-        && this.room.extensions.length >= 6
-    ) {
+    } else if ( this.room.extensions.length >= 6 ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
-    } else if (
-        this.room.creepsDefault.length >= this.room.creepsRequired() / 1.75 
-        && this.room.extensions.length >= 5
-    ) {
-        bodyParts = [WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
-    } else if (
-        this.room.creepsDefault.length >= this.room.creepsRequired() / 2 
-        && this.room.extensions.length >= 2
-    ) {
+    } else if ( this.room.extensions.length >= 5 ) {
+        bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
+    } else if ( this.room.extensions.length >= 2 ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
-    } else if (
-        this.room.creepsDefault.length >= this.room.creepsRequired() / 3
-    ) {
+    } else if ( this.room.creepsDefault.length >= this.room.creepsRequired() * 0.2 ) {
         bodyParts = [WORK, CARRY, MOVE, MOVE];
     } else {
         bodyParts = [WORK, CARRY, MOVE];
