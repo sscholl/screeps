@@ -3,10 +3,6 @@
 Creep.prototype.runRanger = function() {
     var target = this.pos.findClosest(this.room.getHostileCreeps());
     if (target) {
-        if (target.owner.username != 'Source Keeper') {
-            Game.notify("User " + target.owner.username + " moved into room " + this.room.name + " with body " + JSON.stringify(target.body), 0);
-        }
-
         if (!this.pos.inRangeTo(target, 3))
             this.movePredefined(target);
         if (this.pos.inRangeTo(target, 2) || this.hits < this.hitsMax * 0.3)

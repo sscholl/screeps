@@ -40,9 +40,7 @@ Room.prototype.run = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'actions', 'of room ' + this.name)
         var withHandshake = this.memory.timer % 15 == 0;
         this.assignTasks(withHandshake);
-this.repairerWorkerAction();
-        this.structuresAction(); // LINK action
-        this.guardAction();
+        this.linkAction();
         this.spawnAction();
     TIMER_END(TIMER_MODULE_ROOM, 'actions')
 
@@ -52,14 +50,12 @@ this.repairerWorkerAction();
 // ########### SOURCES SECTION ############################################
 Room.prototype.initSources = function() {
     TIMER_BEGIN_(TIMER_MODULE_ROOM, 'initSources', 'of room ' + this.name)
+
     if (!this.memory.sources)
         this.memory.sources = {};
-
-    for (var source of this.find(FIND_SOURCES)) {
+    for (var source of this.find(FIND_SOURCES))
         if (!this.memory.sources[source.id])
             this.memory.sources[source.id] = {id: source.id};
-        source.getSpotsCnt();
-    }
 
     this.memory.hostileSpawnIds = [];
     this.memory.hostileSpawns = this.find(FIND_HOSTILE_STRUCTURES);
@@ -131,7 +127,7 @@ Room.prototype.loadStructures = function() {
     this.controllerStorage = Game.getObjectById(this.memory.controllerStorageId);
 
 };
-Room.prototype.structuresAction = function() {
+Room.prototype.linkAction = function() {
     for (var i in this.sources) {
         var linkId = this.sources[i].getMemory().linkId;
         if (linkId) {
@@ -170,32 +166,6 @@ Room.prototype.loadConstructions = function() {
         this.constructions[i] = (Game.getObjectById(this.memory.constructionIds[i]));
     }
 }
-Room.prototype.repairerWorkerAction = function() {
-LOG_DEBUG("do not need repairer")
-return;
-
-    var repairerCount = 3;
-
-    var creeps = this.find(FIND_MY_CREEPS, 
-        { filter:
-            function (creep) {
-                return creep.memory.role == 'repairer'
-            }
-        }
-    );
-    var oldRepairersCount = creeps.length;
-
-    if (oldRepairersCount < repairerCount) {
-        creeps = this.findSearchingDefaultWorkerFull();
-        if (creeps.length == 0) creeps = this.findSearchingDefaultWorker();
-        for(var i = 0; i < repairerCount - oldRepairersCount; ++ i) {
-            if (creeps[i]) {
-                creeps[i].memory.phase = 'repair';
-                LOG_DETAIL_THIS("add a repairer " + creeps[i].name)
-            }
-        }
-    }
-}
 
 // ########### CREEPS SECTION #############################################
 Room.prototype.initCreeps = function() {
@@ -206,13 +176,6 @@ Room.prototype.initCreeps = function() {
     this.creepsHealer = this.find(FIND_MY_CREEPS, {filter: {memory: {body: BODY_HEALER}}});
     //this.creeps = this.find(FIND_MY_CREEPS);
     this.creeps = this.creepsDefault.concat(this.creepsHarvester, this.creepsUpgrader, this.creepsRanger, this.creepsHealer);
-}
-Room.prototype.guardAction = function() {
-    for (rangerNr in this.creepsRanger) {
-        var creep = this.creepsRanger[rangerNr];
-        //if (!Number.isInteger(creep.memory.hostileSpawnNr)) 
-            creep.memory.hostileSpawnNr = rangerNr % this.hostileSpawns.length;
-    }
 }
 Room.prototype.getDefaultHarvesterCount = function() {
     if (this.defaultHarvesterCount == undefined) {
@@ -238,8 +201,6 @@ Room.prototype.creepsRequired = function() {
 Room.prototype.creepsRequiredAllWork = function() {
     return (2*this.memory.sourcesSaveCount) + this.getDefaultHarvesterCount() + this.getDefaultUpgraderCount(); //harvester, upgrader, repairer
 }
-
-
 
 // ########### SPAWN SECTION ############################################
 Room.prototype.spawnAction = function() {
@@ -279,8 +240,25 @@ Room.prototype.spawnAction = function() {
 Room.prototype.getHostileCreeps = function() {
     if (this.hostileCreeps == undefined) {
         this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS);
+        for (var i in this.hostileCreeps) {
+            var c = this.hostileCreeps[i];
+            if (c.owner.username != 'Source Keeper') {
+                Game.notify("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
+            }
+        }
     }
     return this.hostileCreeps;
+}
+Room.prototype.getUnsavePostions = function() {
+    if (this.poss === undefined) {
+        this.poss = [];
+        var creeps = this.getHostileCreeps();
+        for (var i in creeps) {
+            var creep = creeps[i];
+            this.poss = this.poss.concat(creep.pos.getInRangePositions(3));
+        }
+    }
+    return this.poss;
 }
 
 // ########### OTHER SECTION ############################################
@@ -292,18 +270,6 @@ Room.prototype.logDetail = function(message) {
 }
 Room.prototype.logError = function(message) {
     logError('[' + this.name + "] " + message);
-}
-
-Room.prototype.getUnsavePostions = function() {
-    if (this.poss === undefined) {
-        this.poss = [];
-        var creeps = this.getHostileCreeps();
-        for (var i in creeps) {
-            var creep = creeps[i];
-            this.poss = this.poss.concat(creep.pos.getInRangePositions(3));
-        }
-    }
-    return this.poss;
 }
 
 Room.prototype.hasCreepEmpty = function(bodyType, setNoCreep) {
