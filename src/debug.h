@@ -53,7 +53,7 @@
     function timerEnd_(module, timerName, text) {
         Memory.timer[timerName] = Game.getUsedCpu() - Memory.timer[timerName];
         logLevelDecrease();
-        logDetail('<-- ' + timerName + ' [' + Memory.timer[timerName].toFixed(1) + '] ' + text
+        logDetail('<-- ' + timerName + ' [' + Memory.timer[timerName].toFixed(2) + '] ' + text
         );
     }
 

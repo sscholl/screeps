@@ -18,6 +18,13 @@ CTasks.prototype.getList = function() {
 CTasks.prototype.getCollection = function() {
     return this.collection;
 };
+CTasks.prototype.getPositions = function() {
+    var poss = [];
+    for (var i in this.getCollection()) {
+        poss.push(this.get(i).getPos());
+    }
+    return poss;
+};
 CTasks.prototype.get = function(taskCode) {
     var task = this.collection[taskCode];
     if (task && task.constructor !== CTask)
@@ -39,13 +46,13 @@ CTasks.prototype.add = function(task) {
  */
 CTasks.prototype.del = function(task) {
     var taskCode;
-    if (task instanceof String) taskCode = task;
-    else                        taskCode = task.getCode();
-    if (this.get(taskCode)) {
-        this.list.splice(this.list.indexOf(task.getCode()), 1);
+    if (typeof task === 'string') taskCode = task;
+    else                          taskCode = task.getCode();
+    if (this.get(taskCode) instanceof CTask) {
+        this.list.splice(this.list.indexOf(taskCode), 1);
         delete this.collection[taskCode];
     } else {
-        this.logError("Task does not exist.");
+        logError("Task does not exist.");
     }
 };
 

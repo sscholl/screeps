@@ -1,7 +1,7 @@
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runRanger = function() {
-    var target = this.pos.findClosest(this.room.getHostileCreeps());
+    var target = this.pos.findClosestByPath(this.room.getHostileCreeps());
     if (target) {
         if (!this.pos.inRangeTo(target, 3))
             this.movePredefined(target);
@@ -19,7 +19,7 @@ Creep.prototype.runRanger = function() {
         // delete a custom structure
         //var stuff = this.room.lookAt(0,0);
         //var target = stuff[0];
-          //console.log(JSON.stringify(stuff));
+          //LOG_DEBUG(JSON.stringify(stuff));
         //this.rangedAttack(target.structure);
 
         delete this.memory.currentTargetId;

@@ -1,7 +1,7 @@
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runHealer = function() {
-    var damagedCreep = this.pos.findClosest(FIND_MY_CREEPS, {
+    var damagedCreep = this.pos.findClosestByPath(FIND_MY_CREEPS, {
         filter: function(object) {
             return object !== this && object.hits < object.hitsMax;
         }
@@ -29,7 +29,7 @@ Creep.prototype.runHealer = function() {
         return;
     }
     
-    var guard = this.pos.findClosest(FIND_MY_CREEPS, {
+    var guard = this.pos.findClosestByPath(FIND_MY_CREEPS, {
         filter: function(creep) {
             return creep.memory.role === 'guard';
         }

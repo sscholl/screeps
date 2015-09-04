@@ -2,24 +2,14 @@
 
 Creep.prototype.runUpgrader = function() {
     if (!this.memory.phase || this.memory.phase === PHASE_SEARCH) {
-        this.fillOnStorage();
+        this.fillOnStructure(this.room.controllerStorage);
     }
     if (this.memory.phase === PHASE_TASK) {
-        if (this.carry.energy > this.carryCapacity / 2) {
+        if (this.carry.energy > 20) {
             this.movePredefined(this.room.controller.pos);
         } else {
-            this.fillOnStorage();
+            this.fillOnStructure(this.room.controllerStorage);
         }
         this.upgradeController(this.room.controller);
-    }
-}
-
-Creep.prototype.fillOnStorage = function() {
-    var storage = this.room.controllerStorage;
-    if (storage) {
-        this.movePredefined(storage.pos);
-        restult = storage.transferEnergy(this);
-    } else {
-        this.logError("no controller storage available");
     }
 }

@@ -7,25 +7,25 @@ RoomPosition.prototype.findEnemyStructuresInAttackRange = function(opts) {
 };
 
 RoomPosition.prototype.findClosestEmptyExtension = function(opts) {
-    return this.findClosest(FIND_MY_STRUCTURES, {
+    return this.findClosestByPath(FIND_MY_STRUCTURES, {
         filter: function(object) {return object.structureType == STRUCTURE_EXTENSION && object.energy != object.energyCapacity;}
     });
 };
 RoomPosition.prototype.findClosestEnergyContainer = function(opts) {
-    var spawn = this.findClosest(FIND_MY_SPAWNS, {
+    var spawn = this.findClosestByPath(FIND_MY_SPAWNS, {
         filter: function(object) { return object.energy > 0;}
     });
-    var extension = this.findClosest(FIND_MY_STRUCTURES, {
+    var extension = this.findClosestByPath(FIND_MY_STRUCTURES, {
         filter: function(object) { return object.structureType == STRUCTURE_EXTENSION && object.energy > 0;}
     });
     if ( spawn )        rangeS = this.getRangeTo(spawn);
     else                rangeS = 99999999;
     if ( extension )    rangeE = this.getRangeTo(extension);
     else                rangeE = 99999999;
-    if (!extension && !spawn)                   return this.findClosest(FIND_MY_SPAWNS);
+    if (!extension && !spawn)                   return this.findClosestByPath(FIND_MY_SPAWNS);
     else if (extension && rangeE <= rangeS )    return extension;
     else if (spawn && rangeS <= rangeE )        return spawn;
-    else                                        console.log("error while findng a energy source");
+    else                                        LOG_DEBUG("error while findng a energy source");
 };
 
 RoomPosition.prototype.findInRangeLink = function(range) {
@@ -35,7 +35,7 @@ RoomPosition.prototype.findInRangeLink = function(range) {
 };
 
 RoomPosition.prototype.findClosestSearchingDefaultWorker = function() {
-    return this.findClosest(FIND_MY_CREEPS, 
+    return this.findClosestByPath(FIND_MY_CREEPS, 
         { filter:
             function (creep) {
                 return creep.memory.body == BODY_DEFAULT && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
@@ -44,7 +44,7 @@ RoomPosition.prototype.findClosestSearchingDefaultWorker = function() {
     );
 }
 RoomPosition.prototype.findClosestSearchingHarvester = function() {
-    return this.findClosest(FIND_MY_CREEPS, 
+    return this.findClosestByPath(FIND_MY_CREEPS, 
         { filter:
             function (creep) {
                 return creep.memory.body == BODY_HARVESTER && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
@@ -53,7 +53,7 @@ RoomPosition.prototype.findClosestSearchingHarvester = function() {
     );
 }
 RoomPosition.prototype.findClosestSearchingUpgrader = function() {
-    return this.findClosest(FIND_MY_CREEPS, 
+    return this.findClosestByPath(FIND_MY_CREEPS, 
         { filter:
             function (creep) {
                 return creep.memory.body == BODY_UPGRADER && (creep.memory.phase == undefined || creep.memory.phase == PHASE_SEARCH);
@@ -67,9 +67,20 @@ RoomPosition.prototype.findClosestSearchingUpgrader = function() {
 
 
 
+RoomPosition.prototype.findClosestCreep = function(_bodyType) {
+    var bodyType = _bodyType;
+    return this.findClosestByPath(FIND_MY_CREEPS, { filter:
+        function (creep) {
+            return creep.memory.body === bodyType 
+                    && (creep.memory.phase === PHASE_SEARCH 
+                        || creep.memory.phase === undefined)
+        }
+    });
+};
+
 RoomPosition.prototype.findClosestCreepEmpty = function(_bodyType) {
     var bodyType = _bodyType;
-    return this.findClosest(FIND_MY_CREEPS, { filter:
+    return this.findClosestByPath(FIND_MY_CREEPS, { filter:
         function (creep) {
             return creep.memory.body === bodyType 
                     && (creep.memory.phase === PHASE_SEARCH 
@@ -81,7 +92,7 @@ RoomPosition.prototype.findClosestCreepEmpty = function(_bodyType) {
 
 RoomPosition.prototype.findClosestCreepFull = function(_bodyType) {
     var bodyType = _bodyType;
-    return this.findClosest(FIND_MY_CREEPS, { filter:
+    return this.findClosestByPath(FIND_MY_CREEPS, { filter:
         function (creep) {
             return creep.memory.body === bodyType 
                     && (creep.memory.phase === PHASE_SEARCH 

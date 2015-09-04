@@ -17,17 +17,26 @@ Spawn.prototype.spawn = function(body, bodyParts) {
 Spawn.prototype.spawnDefault = function() {
     var bodyParts;
     if (
-        this.room.creepsDefault.length >= this.room.creepsRequired() * 0.5
+        this.room.creepsHarvester.length >= 1
         && this.room.extensions.length >= 9
     ) {
-        bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
-    } else if ( this.room.extensions.length >= 6 ) {
-        bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
-    } else if ( this.room.extensions.length >= 5 ) {
+        bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
+    } else if (
+        this.room.creepsHarvester.length >= 1
+        && this.room.extensions.length >= 5 
+    ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
-    } else if ( this.room.extensions.length >= 2 ) {
+    } else if (
+        this.room.creepsHarvester.length >= 1
+        && this.room.extensions.length >= 4
+    ) {
+        bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
+    } else if (
+        this.room.creepsHarvester.length >= 1
+        && this.room.extensions.length >= 2
+    ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
-    } else if ( this.room.creepsDefault.length >= this.room.creepsRequired() * 0.2 ) {
+    } else if ( this.room.creepsHarvester.length >= 1 ) {
         bodyParts = [WORK, CARRY, MOVE, MOVE];
     } else {
         bodyParts = [WORK, CARRY, MOVE];
@@ -37,39 +46,84 @@ Spawn.prototype.spawnDefault = function() {
 
 Spawn.prototype.spawnHarvester = function() {
     var bodyParts;
-    if (this.room.extensions.length >= 6) {
+    if (this.room.extensions.length >= 8)
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE ];
+    else if (this.room.extensions.length >= 6)
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
-    } else if (this.room.extensions.length >= 5) {
+    else if (this.room.extensions.length >= 5)
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    var r = this.spawn(BODY_HARVESTER, bodyParts);
+    if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
+        this.spawnDefault();
     }
-    this.spawn(BODY_HARVESTER, bodyParts);
 }
 
 Spawn.prototype.spawnUpgrader = function() {
-    if (this.room.extensions.length >= 20) {
-        var bodyParts = [ 
+    var bodyParts;
+    if (this.room.extensions.length >= 40 && this.room.getCreepsUpgraderCnt() > 2)
+        bodyParts = [ 
+            WORK, WORK, WORK, WORK, WORK, //500
+            WORK, WORK, WORK, WORK, WORK, //500
+            WORK, WORK, WORK, WORK, WORK, //500
+            WORK, WORK, WORK, WORK, WORK, //500
+            MOVE, MOVE, MOVE, CARRY, MOVE, CARRY, MOVE //350
+        ];
+    else if (this.room.extensions.length >= 30 && this.room.getCreepsUpgraderCnt() > 1)
+        bodyParts = [ 
+            WORK, WORK, WORK, WORK, WORK, //500
+            WORK, WORK, WORK, WORK, WORK, //500
+            WORK, WORK, WORK, WORK, WORK, //500
+            MOVE, MOVE, MOVE, CARRY, MOVE, CARRY, MOVE //350
+        ];
+    else if (this.room.extensions.length >= 20)
+        bodyParts = [ 
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
             MOVE, MOVE, MOVE, MOVE, CARRY, MOVE //300
         ];
-    } else if (this.room.extensions.length >= 30) {
-        var bodyParts = [ 
-            WORK, WORK, WORK, WORK, WORK,
-            WORK, WORK, WORK, WORK, WORK,
-            WORK, WORK, WORK, WORK, WORK, //500
-            MOVE, MOVE, MOVE, CARRY, MOVE //250
-        ];
-
-    }
     this.spawn(BODY_UPGRADER, bodyParts);
+}
+
+Spawn.prototype.spawnCarrier = function() {
+    var bodyParts;
+    /*if (this.room.extensions.length >= 20)
+        bodyParts = [ 
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE  //100
+        ];
+    else */
+    if (this.room.extensions.length >= 10)
+        bodyParts = [ 
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE  //200
+        ];
+    else if (this.room.extensions.length >= 5)
+        bodyParts = [ 
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE  //200
+        ];
+    else
+        bodyParts = [ CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];  //300
+    this.spawn(BODY_CARRIER, bodyParts);
+}
+
+Spawn.prototype.spawnCarrierTiny = function() {
+    var bodyParts = [ CARRY, MOVE ];
+    this.spawn(BODY_CARRIER_TINY, bodyParts);
 }
 
 Spawn.prototype.spawnHealer = function() {
     var bodyParts;
     if (this.room.extensions.length >= 20) {
-        bodyParts = [ MOVE, MOVE, MOVE,  //4 * 50 = 200
-            HEAL, HEAL, HEAL, HEAL, //4 * 200 = 800
-            MOVE
+        bodyParts = [
+            HEAL, MOVE, //250
+            HEAL, MOVE, //250
+            HEAL, MOVE, //250
+            HEAL, MOVE //250
         ];
     } else {
         bodyParts = [MOVE, HEAL];
@@ -79,37 +133,40 @@ Spawn.prototype.spawnHealer = function() {
 
 Spawn.prototype.spawnRanger = function() {
     var bodyParts;
-    if (this.room.extensions.length >= 40) {
+    if (false && this.room.extensions.length >= 40) { // max: 2300
         bodyParts = [
-            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, 
-            TOUGH, TOUGH, TOUGH, TOUGH, 
-            // 9 * 10 = 90
-            MOVE, MOVE, MOVE, MOVE, MOVE,  
-            MOVE, MOVE, MOVE, MOVE,   //9 * 50 = 450
-            RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, 
-            RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK,
-            RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, //11 * 150 = 1650
-            MOVE // 50
-        ]; // sum = 2240
-    } else if (this.room.extensions.length >= 30) {
+            TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
+            RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+            RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE  //200
+        ]; // sum: 2300
+    } else if (this.room.extensions.length >= 30) { // max: 1800
         bodyParts = [
-            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, 
-            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
-            TOUGH, TOUGH, TOUGH, // 13 * 10 = 130
-            MOVE, MOVE, MOVE, MOVE, MOVE,  
-            MOVE, MOVE, MOVE, MOVE,   //9 * 50 = 450
-            RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, 
-            RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, //7 * 150 = 1150
-            MOVE
-        ]; // sum = 1630
-    } else if (this.room.extensions.length >= 20) {
+            TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
+            RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+            RANGED_ATTACK, MOVE, //200
+            RANGED_ATTACK, MOVE  //200
+        ]; // sum: 1700
+    } else if (this.room.extensions.length >= 20) { // max: 1300
         bodyParts = [
-            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
-            TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH,
-            MOVE, MOVE, MOVE, MOVE, MOVE,  //5 * 50 = 250
-            RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, //5 * 150 = 750
-            MOVE
-        ];
+            TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
+            RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE, //200
+                RANGED_ATTACK, MOVE  //200
+        ]; // sum: 1300
     } else {
         this.logError("can't create ranger");
     }

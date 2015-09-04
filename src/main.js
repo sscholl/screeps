@@ -1,3 +1,4 @@
+console.log("load time " + Game.getUsedCpu());
 //######## Include Debug ######################################################
 
 #include "debug.h"
@@ -5,15 +6,16 @@
 
 #if DEBUG
     console.log('===============================================' + Game.time +
-                 '===============================================');
+                 '========================================= with cpu limit of ' + Game.cpuLimit);
 #endif
 
 TIMER_BEGIN(TIMER_MODULE_MAIN, 'main')
 
 // ######## Include new own classes ###########################################
-#include "CTask.js"
-#include "CTasks.js"
+#include "Task/CTask.js"
+#include "Task/CTasks.js"
 // ######## Include prototype extension of classes ############################
+#include "CMap.js"
 #include "CSpawn.js"
 #include "CStructure.js"
 #include "CSource.js"
@@ -35,10 +37,8 @@ for (var roomName in Game.rooms) {
     room.spawns = room.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_SPAWN}});
     if (room.spawns.length > 0) {
         room.defaultSpawn = room.spawns[0];
-    } else {
-        room.defaultSpawn = Game.spawns.Spawn1;
     }
-
+    
     room.run();
 }
 TIMER_END(TIMER_MODULE_MAIN, 'room')
