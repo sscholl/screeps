@@ -239,10 +239,13 @@ Creep.prototype.taskFillStorage = function() {
     var link = this.getCurrentTask().getTarget();
     if (link instanceof Structure && this.room.controllerStorage instanceof Structure) {
         if (this.carry.energy > 0) {
-            this.fillStructure(this.room.controllerStorage)
+            if (this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity)
+                this.fillStructure(this.room.defaultSpawn)
+            else
+                this.fillStructure(this.room.controllerStorage)
         } else {
             if (link.energy <= 0) {
-                if (this.memory.body === BODY_DEFAULT) {
+                if (this.memory.body !== BODY_CARRIER_TINY) {
                     this.getCurrentTask().delete();
                     this.taskDisassign();
                     return;

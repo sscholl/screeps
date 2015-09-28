@@ -1,6 +1,8 @@
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runHealer = function() {
+    //TIMER_BEGIN_(TIMER_MODULE_MAIN, 'runHealer', this.name);
+
     var damagedCreep = this.pos.findClosestByPath(FIND_MY_CREEPS, {
         filter: function(object) {
             return object !== this && object.hits < object.hitsMax;
@@ -24,19 +26,19 @@ Creep.prototype.runHealer = function() {
         this.heal(damagedCreep);
         return;
     }
-    if (this.room.name == 'W12S3' && Game.rooms.W12S2.creepsHealer.length < 2) {
-        this.movePredefined(Game.flags.W12S2.pos);
-        return;
-    }
-    
-    var guard = this.pos.findClosestByPath(FIND_MY_CREEPS, {
-        filter: function(creep) {
-            return creep.memory.role === 'guard';
-        }
-    });
+    var guard;
+    if (this.memory.currentTargetId)
+        guard = Game.getObjectById(this.memory.currentTargetId);
+    else
+        guard = this.pos.findClosestByPath(FIND_MY_CREEPS, {
+            filter: function(creep) {
+                return creep.memory.role === 'guard';
+            }
+        });
     if (guard) {
         if (!this.pos.inRangeTo(guard, 1))
            this.movePredefined(guard);
+       this.memory.currentTargetId = guard.id;
     } else {
         var collectionPoint = Game.flags[this.room.name];
         if (collectionPoint) {
@@ -45,4 +47,5 @@ Creep.prototype.runHealer = function() {
             this.movePredefined(this.room.defaultSpawn);
         }
     }
+    //TIMER_END(TIMER_MODULE_MAIN, 'runHealer');
 }

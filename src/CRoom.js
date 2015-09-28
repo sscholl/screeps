@@ -203,32 +203,33 @@ Room.prototype.getDefaultUpgraderCount = function() {
     else return 1;
 };
 Room.prototype.getDefaultCarrierCount = function() {
-    if (this.defaultCarrierCount == undefined) {
-        this.defaultCarrierCount = 0;
-        if (this.creepsCarrier.length <= 0) {
-            for (var id in this.sources) {
-                var source = this.sources[id];
-                if (source.getMemory().isSave)
-                    if (source.getMemory().creepName) ++ this.defaultHarvesterCount;
-                    else this.defaultHarvesterCount += source.getSpotsCnt();
-            }
-        }
-    }
-    return this.defaultHarvesterCount;
+    if (! (this.controllerStorage instanceof Structure)){
+        return 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
+    }else return 0;
 };
 Room.prototype.getDefaultBuilderCount = function() {
     var cnt = 0;
-    //if (this.constructions.length > 2) ++ cnt;
+    if (this.constructions.length > 4) ++ cnt;
+    if (this.constructions.length > 3) ++ cnt;
+    if (this.constructions.length > 2) ++ cnt;
     if (this.constructions.length > 1) ++ cnt;
     return cnt;
 };
 Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount() 
+        + this.getDefaultCarrierCount()
         + this.getDefaultUpgraderCount()
         + this.getDefaultBuilderCount(); //harvester, upgrader, @TODO: builder/repairer
 };
 Room.prototype.creepsCarrierCnt = function() {
-    return 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
+    var cnt = 0;
+    if (this.controllerStorage instanceof Structure)
+        cnt += 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
+    if (this.constructions.length > 4) -- cnt;
+    if (this.constructions.length > 3) -- cnt;
+    if (this.constructions.length > 2) -- cnt;
+    //if (this.constructions.length > 1) -- cnt;
+    return cnt;
 };
 Room.prototype.creepsCarrierTinyCnt = function() {
     var cnt = 0;//2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
@@ -237,10 +238,12 @@ Room.prototype.creepsCarrierTinyCnt = function() {
 };
 Room.prototype.getCreepsUpgraderCnt = function() {
     if (this.creepsUpgraderCnt === undefined) {
-        this.creepsUpgraderCnt = 1;
-        if (this.controllerStorage.store.energy > 100000) {
-            ++ this.creepsUpgraderCnt;
-            if (this.controllerStorage.store.energy > 200000) ++ this.creepsUpgraderCnt;
+        if (this.controllerStorage instanceof Structure) {
+            this.creepsUpgraderCnt = 1;
+            if (this.controllerStorage.store.energy > 100000) {
+                ++ this.creepsUpgraderCnt;
+                if (this.controllerStorage.store.energy > 200000) ++ this.creepsUpgraderCnt;
+            }
         }
     }
     return this.creepsUpgraderCnt;
@@ -253,13 +256,14 @@ Room.prototype.spawnAction = function() {
 
         var bodyParts;
         var body;
-        if ( this.creepsHarvester.length < this.memory.sourcesSaveCount
+        if ( this.creepsDefault.length >= this.creepsRequired()
+            && this.creepsHarvester.length < this.memory.sourcesSaveCount
             && this.extensions.length >= 5
         ) {
             spawn.spawnHarvester();
-        } else if (this.creepsDefault.length < this.creepsRequired() + 1) {
+        } else if (this.creepsDefault.length < this.creepsRequired()) {
             spawn.spawnDefault();
-        } else if ( this.controllerStorage instanceof Structure
+        } else if ( this.creepsHarvester.length >= 1
             && this.creepsUpgrader.length < this.getCreepsUpgraderCnt()
             && this.extensions.length >= 20
         ) {
@@ -269,15 +273,16 @@ Room.prototype.spawnAction = function() {
             && this.creepsCarrierTiny.length < this.creepsCarrierTinyCnt()
         ) {
             spawn.spawnCarrierTiny();
-        } else if ( this.creepsCarrier.length < this.creepsCarrierCnt()
-        ) {
+        } else if ( this.creepsCarrier.length < this.creepsCarrierCnt() ) {
             spawn.spawnCarrier();
-        } else if ( this.creepsHealer.length < 1
+        } else if ( this.creepsHealer.length < 2
             && this.extensions.length >= 20
+            && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnHealer();
-        } else if ( this.creepsRanger.length < 1
+        } else if ( this.creepsRanger.length < 4
             && this.extensions.length >= 20
+            && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
         } else {
@@ -290,7 +295,9 @@ Room.prototype.spawnAction = function() {
 // ########### HOSTILE SECTION ###########################################
 Room.prototype.getHostileCreeps = function() {
     if (this.hostileCreeps == undefined) {
-        this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS);
+        var opts = {};
+        opts.filter = function(object) { return object.owner.username !== 'NhanHo';}
+        this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS, opts);
         for (var i in this.hostileCreeps) {
             var c = this.hostileCreeps[i];
             if (c.owner.username != 'Source Keeper') {

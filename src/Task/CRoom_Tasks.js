@@ -45,14 +45,14 @@ Room.prototype.initTasksDynamic = function() {
             for (var i in exits) {
                 if (exits[i] === 'W5N13') exitDirW5N13 = i;
             }*/
-            this.createTask(
+            /*this.createTask(
                 TASK_MOVE, 
                 'W5N13', 
                 new RoomPosition(49, 24, this.name).findClosestByRange(Game.map.findExitCached(this.name, 'W5N13')), 
-                1,
+                3,
                 true,
                 [BODY_DEFAULT]
-            );
+            );*/
     } else {
         if (!this.defaultSpawn) {
             this.createTask(

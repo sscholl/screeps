@@ -1,4 +1,5 @@
-console.log("load time " + Game.getUsedCpu());
+var time = Game.getUsedCpu();
+console.log("LOAD TIME " + time);
 
 
 
@@ -50,8 +51,6 @@ console.log("load time " + Game.getUsedCpu());
     console.log('===============================================' + Game.time +
                  '========================================= with cpu limit of ' + Game.cpuLimit);
 
-
-timerBegin("main", 'main');
 
 
 
@@ -415,28 +414,29 @@ Spawn.prototype.spawn = function(body, bodyParts) {
             this.room.logCompact('Spawn error: ' + result
                 + ' while try to spawn ' + JSON.stringify(bodyParts));
     }
+    return result;
 }
 
 Spawn.prototype.spawnDefault = function() {
     var bodyParts;
     if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 9
+        && this.room.energyAvailable >= 750
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 5
+        && this.room.energyAvailable >= 550
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 4
+        && this.room.energyAvailable >= 500
     ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 2
+        && this.room.energyAvailable >= 400
     ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
     } else if ( this.room.creepsHarvester.length >= 1 ) {
@@ -445,16 +445,22 @@ Spawn.prototype.spawnDefault = function() {
         bodyParts = [WORK, CARRY, MOVE];
     }
     this.spawn('default', bodyParts);
+    var r = this.spawn('default', bodyParts);
+    if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
+        this.spawnDefault();
+    }
 }
 
 Spawn.prototype.spawnHarvester = function() {
     var bodyParts;
-    if (this.room.extensions.length >= 8)
-        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE ];
-    else if (this.room.extensions.length >= 6)
+    if (this.room.energyAvailable >= 800)
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE ];
+    else if (this.room.energyAvailable >= 600)
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
-    else if (this.room.extensions.length >= 5)
+    else if (this.room.energyAvailable >= 550)
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    else
+        this.room.logError("can't create harvester");
     var r = this.spawn('harvester', bodyParts);
     if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
         this.spawnDefault();
@@ -476,7 +482,7 @@ Spawn.prototype.spawnUpgrader = function() {
             WORK, WORK, WORK, WORK, WORK,
             WORK, WORK, WORK, WORK, WORK,
             WORK, WORK, WORK, WORK, WORK,
-            MOVE, MOVE, MOVE, CARRY, MOVE, CARRY, MOVE
+            MOVE, MOVE, CARRY, MOVE, CARRY, MOVE
         ];
     else if (this.room.extensions.length >= 20)
         bodyParts = [
@@ -484,6 +490,8 @@ Spawn.prototype.spawnUpgrader = function() {
             WORK, WORK, WORK, WORK, WORK,
             MOVE, MOVE, MOVE, MOVE, CARRY, MOVE
         ];
+    else
+        this.room.logError("can't create upgrader");
     this.spawn('upgrader', bodyParts);
 }
 
@@ -562,7 +570,7 @@ Spawn.prototype.spawnRanger = function() {
                 RANGED_ATTACK, MOVE
         ];
     } else {
-        this.logError("can't create ranger");
+        this.room.logError("can't create ranger");
     }
     this.spawn('ranger', bodyParts);
 }
@@ -968,10 +976,13 @@ Creep.prototype.taskFillStorage = function() {
     var link = this.getCurrentTask().getTarget();
     if (link instanceof Structure && this.room.controllerStorage instanceof Structure) {
         if (this.carry.energy > 0) {
-            this.fillStructure(this.room.controllerStorage)
+            if (this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity)
+                this.fillStructure(this.room.defaultSpawn)
+            else
+                this.fillStructure(this.room.controllerStorage)
         } else {
             if (link.energy <= 0) {
-                if (this.memory.body === 'default') {
+                if (this.memory.body !== 'carrier_tiny') {
                     this.getCurrentTask().delete();
                     this.taskDisassign();
                     return;
@@ -1026,6 +1037,7 @@ Creep.prototype.runUpgrader = function() {
 
 Creep.prototype.runRanger = function() {
     var target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+    if (target && target.owner.username === "NhanHo") target = false;
     if (target) {
         if (!this.pos.inRangeTo(target, 3))
             this.movePredefined(target);
@@ -1052,6 +1064,8 @@ Creep.prototype.runRanger = function() {
 
 
 Creep.prototype.runHealer = function() {
+
+
     var damagedCreep = this.pos.findClosestByPath(FIND_MY_CREEPS, {
         filter: function(object) {
             return object !== this && object.hits < object.hitsMax;
@@ -1075,19 +1089,19 @@ Creep.prototype.runHealer = function() {
         this.heal(damagedCreep);
         return;
     }
-    if (this.room.name == 'W12S3' && Game.rooms.W12S2.creepsHealer.length < 2) {
-        this.movePredefined(Game.flags.W12S2.pos);
-        return;
-    }
-
-    var guard = this.pos.findClosestByPath(FIND_MY_CREEPS, {
-        filter: function(creep) {
-            return creep.memory.role === 'guard';
-        }
-    });
+    var guard;
+    if (this.memory.currentTargetId)
+        guard = Game.getObjectById(this.memory.currentTargetId);
+    else
+        guard = this.pos.findClosestByPath(FIND_MY_CREEPS, {
+            filter: function(creep) {
+                return creep.memory.role === 'guard';
+            }
+        });
     if (guard) {
         if (!this.pos.inRangeTo(guard, 1))
            this.movePredefined(guard);
+       this.memory.currentTargetId = guard.id;
     } else {
         var collectionPoint = Game.flags[this.room.name];
         if (collectionPoint) {
@@ -1096,6 +1110,7 @@ Creep.prototype.runHealer = function() {
             this.movePredefined(this.room.defaultSpawn);
         }
     }
+
 }
 
 
@@ -1160,7 +1175,7 @@ Creep.prototype.fillOnStructure = function(structure) {
 }
 
 Creep.prototype.fillStructure = function(structure) {
-    if (structure instanceof Structure) {
+    if (structure instanceof Structure || structure instanceof Spawn) {
         this.movePredefined(structure.pos);
         this.transferEnergy(structure);
     } else {
@@ -1225,19 +1240,6 @@ Room.prototype.initTasksDynamic = function() {
     timerBegin_("room", 'initTasksDynamic', 'of room ' + this.name);
 
     if (this.name === 'W6N13') {
-
-
-
-
-
-            this.createTask(
-                'T_MOVE',
-                'W5N13',
-                new RoomPosition(49, 24, this.name).findClosestByRange(Game.map.findExitCached(this.name, 'W5N13')),
-                1,
-                true,
-                ['default']
-            );
     } else {
         if (!this.defaultSpawn) {
             this.createTask(
@@ -1584,32 +1586,33 @@ Room.prototype.getDefaultUpgraderCount = function() {
     else return 1;
 };
 Room.prototype.getDefaultCarrierCount = function() {
-    if (this.defaultCarrierCount == undefined) {
-        this.defaultCarrierCount = 0;
-        if (this.creepsCarrier.length <= 0) {
-            for (var id in this.sources) {
-                var source = this.sources[id];
-                if (source.getMemory().isSave)
-                    if (source.getMemory().creepName) ++ this.defaultHarvesterCount;
-                    else this.defaultHarvesterCount += source.getSpotsCnt();
-            }
-        }
-    }
-    return this.defaultHarvesterCount;
+    if (! (this.controllerStorage instanceof Structure)){
+        return 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
+    }else return 0;
 };
 Room.prototype.getDefaultBuilderCount = function() {
     var cnt = 0;
-
+    if (this.constructions.length > 4) ++ cnt;
+    if (this.constructions.length > 3) ++ cnt;
+    if (this.constructions.length > 2) ++ cnt;
     if (this.constructions.length > 1) ++ cnt;
     return cnt;
 };
 Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount()
+        + this.getDefaultCarrierCount()
         + this.getDefaultUpgraderCount()
         + this.getDefaultBuilderCount();
 };
 Room.prototype.creepsCarrierCnt = function() {
-    return 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
+    var cnt = 0;
+    if (this.controllerStorage instanceof Structure)
+        cnt += 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
+    if (this.constructions.length > 4) -- cnt;
+    if (this.constructions.length > 3) -- cnt;
+    if (this.constructions.length > 2) -- cnt;
+
+    return cnt;
 };
 Room.prototype.creepsCarrierTinyCnt = function() {
     var cnt = 0;
@@ -1618,10 +1621,12 @@ Room.prototype.creepsCarrierTinyCnt = function() {
 };
 Room.prototype.getCreepsUpgraderCnt = function() {
     if (this.creepsUpgraderCnt === undefined) {
-        this.creepsUpgraderCnt = 1;
-        if (this.controllerStorage.store.energy > 100000) {
-            ++ this.creepsUpgraderCnt;
-            if (this.controllerStorage.store.energy > 200000) ++ this.creepsUpgraderCnt;
+        if (this.controllerStorage instanceof Structure) {
+            this.creepsUpgraderCnt = 1;
+            if (this.controllerStorage.store.energy > 100000) {
+                ++ this.creepsUpgraderCnt;
+                if (this.controllerStorage.store.energy > 200000) ++ this.creepsUpgraderCnt;
+            }
         }
     }
     return this.creepsUpgraderCnt;
@@ -1634,13 +1639,14 @@ Room.prototype.spawnAction = function() {
 
         var bodyParts;
         var body;
-        if ( this.creepsHarvester.length < this.memory.sourcesSaveCount
+        if ( this.creepsDefault.length >= this.creepsRequired()
+            && this.creepsHarvester.length < this.memory.sourcesSaveCount
             && this.extensions.length >= 5
         ) {
             spawn.spawnHarvester();
-        } else if (this.creepsDefault.length < this.creepsRequired() + 1) {
+        } else if (this.creepsDefault.length < this.creepsRequired()) {
             spawn.spawnDefault();
-        } else if ( this.controllerStorage instanceof Structure
+        } else if ( this.creepsHarvester.length >= 1
             && this.creepsUpgrader.length < this.getCreepsUpgraderCnt()
             && this.extensions.length >= 20
         ) {
@@ -1650,15 +1656,16 @@ Room.prototype.spawnAction = function() {
             && this.creepsCarrierTiny.length < this.creepsCarrierTinyCnt()
         ) {
             spawn.spawnCarrierTiny();
-        } else if ( this.creepsCarrier.length < this.creepsCarrierCnt()
-        ) {
+        } else if ( this.creepsCarrier.length < this.creepsCarrierCnt() ) {
             spawn.spawnCarrier();
-        } else if ( this.creepsHealer.length < 1
+        } else if ( this.creepsHealer.length < 2
             && this.extensions.length >= 20
+            && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnHealer();
-        } else if ( this.creepsRanger.length < 1
+        } else if ( this.creepsRanger.length < 4
             && this.extensions.length >= 20
+            && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
         } else {
@@ -1671,7 +1678,9 @@ Room.prototype.spawnAction = function() {
 
 Room.prototype.getHostileCreeps = function() {
     if (this.hostileCreeps == undefined) {
-        this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS);
+        var opts = {};
+        opts.filter = function(object) { return object.owner.username !== 'NhanHo';}
+        this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS, opts);
         for (var i in this.hostileCreeps) {
             var c = this.hostileCreeps[i];
             if (c.owner.username != 'Source Keeper') {
@@ -1727,6 +1736,49 @@ Room.prototype.hasCreepFull = function(bodyType, setNoCreep) {
 }
 
 
+var enable_profiling = true;
+if (enable_profiling) {
+    Memory.p = Memory.p || {};
+
+    var wrap = function(c, n) {
+        var p = Memory.p[n] || { usage: 0, count: 0 };
+        Memory.p[n] = p;
+
+        var f = c.prototype[n];
+        c.prototype[n] = function() {
+            var ts = Game.getUsedCpu();
+            var rc = f.apply(this, arguments);
+            p.usage += Game.getUsedCpu() - ts;
+            ++p.count;
+            return rc;
+        };
+    };
+
+    wrap(RoomPosition, 'isNearTo');
+    wrap(RoomPosition, 'findPathTo');
+    wrap(RoomPosition, 'isEqualTo');
+    wrap(RoomPosition, 'findClosestByPath');
+    wrap(RoomPosition, 'findClosestByDistance');
+    wrap(Creep, 'moveByPath');
+    wrap(Creep, 'moveTo');
+    wrap(Creep, 'movePredefined');
+    wrap(Creep, 'pickup');
+    wrap(Creep, 'build');
+    wrap(Creep, 'repair');
+    wrap(Creep, 'harvest');
+    wrap(Creep, 'upgradeController');
+    wrap(Room, 'lookAt');
+    wrap(Room, 'lookFor');
+    wrap(Room, 'lookForAt');
+    wrap(Room, 'lookForAtArea');
+    wrap(Room, 'find');
+    wrap(Spawn, 'createCreep');
+    wrap(Spawn, 'spawn');
+}
+
+
+
+
 timerBegin("main", 'game');
 var managerGame = require('CManagerGame');
 managerGame.run();
@@ -1759,4 +1811,33 @@ timerEnd("main", 'creeps');
 
 
 
-timerEnd("main", 'main');
+
+var report_interval = 10000;
+if (Game.time % report_interval == 0) {
+        var summary = 0;
+        for (var n in Memory.p) {
+            var p = Memory.p[n];
+            if (p.count === 0) {
+                p.average = 0;
+                continue;
+            }
+            p.average = p.usage / p.count;
+            summary += p.average;
+        }
+        var msg;
+        for (var n in Memory.p) {
+            var p = Memory.p[n];
+            msg = n + ': ' + p.usage.toFixed(2) + '/' + p.count + ' == ' + p.average.toFixed(2)
+                        + ' (' + (p.average * 100 / summary).toFixed(2) + '%)';
+            logDetail(msg);
+            Game.notify(msg, 1);
+        }
+        msg = '--- ' + summary.toFixed(2);
+        logDetail(msg);
+        Game.notify(msg, 1);
+
+        Memory.p = {};
+}
+
+
+console.log("MAIN TIME " + (Game.getUsedCpu() - time));

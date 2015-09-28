@@ -68,7 +68,7 @@ Creep.prototype.fillOnStructure = function(structure) {
 }
 
 Creep.prototype.fillStructure = function(structure) {
-    if (structure instanceof Structure) {
+    if (structure instanceof Structure || structure instanceof Spawn) {
         this.movePredefined(structure.pos);
         this.transferEnergy(structure);
     } else {

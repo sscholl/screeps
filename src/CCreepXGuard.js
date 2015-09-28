@@ -2,6 +2,7 @@
 
 Creep.prototype.runRanger = function() {
     var target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+    if (target && target.owner.username === "NhanHo") target = false;
     if (target) {
         if (!this.pos.inRangeTo(target, 3))
             this.movePredefined(target);

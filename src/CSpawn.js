@@ -12,28 +12,29 @@ Spawn.prototype.spawn = function(body, bodyParts) {
             this.room.logCompact('Spawn error: ' + result 
                 + ' while try to spawn ' + JSON.stringify(bodyParts));
     }
+    return result;
 }
 
 Spawn.prototype.spawnDefault = function() {
     var bodyParts;
     if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 9
+        && this.room.energyAvailable >= 750
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 5 
+        && this.room.energyAvailable >= 550
     ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 4
+        && this.room.energyAvailable >= 500
     ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
     } else if (
         this.room.creepsHarvester.length >= 1
-        && this.room.extensions.length >= 2
+        && this.room.energyAvailable >= 400
     ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
     } else if ( this.room.creepsHarvester.length >= 1 ) {
@@ -42,16 +43,22 @@ Spawn.prototype.spawnDefault = function() {
         bodyParts = [WORK, CARRY, MOVE];
     }
     this.spawn(BODY_DEFAULT, bodyParts);
+    var r = this.spawn(BODY_DEFAULT, bodyParts);
+    if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
+        this.spawnDefault();
+    }
 }
 
 Spawn.prototype.spawnHarvester = function() {
     var bodyParts;
-    if (this.room.extensions.length >= 8)
-        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE ];
-    else if (this.room.extensions.length >= 6)
+    if (this.room.energyAvailable >= 800)
+        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE ];
+    else if (this.room.energyAvailable >= 600)
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
-    else if (this.room.extensions.length >= 5)
+    else if (this.room.energyAvailable >= 550)
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
+    else 
+        this.room.logError("can't create harvester");
     var r = this.spawn(BODY_HARVESTER, bodyParts);
     if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
         this.spawnDefault();
@@ -73,7 +80,7 @@ Spawn.prototype.spawnUpgrader = function() {
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
-            MOVE, MOVE, MOVE, CARRY, MOVE, CARRY, MOVE //350
+            MOVE, MOVE, CARRY, MOVE, CARRY, MOVE //350
         ];
     else if (this.room.extensions.length >= 20)
         bodyParts = [ 
@@ -81,6 +88,8 @@ Spawn.prototype.spawnUpgrader = function() {
             WORK, WORK, WORK, WORK, WORK, //500
             MOVE, MOVE, MOVE, MOVE, CARRY, MOVE //300
         ];
+    else 
+        this.room.logError("can't create upgrader");
     this.spawn(BODY_UPGRADER, bodyParts);
 }
 
@@ -168,7 +177,7 @@ Spawn.prototype.spawnRanger = function() {
                 RANGED_ATTACK, MOVE  //200
         ]; // sum: 1300
     } else {
-        this.logError("can't create ranger");
+        this.room.logError("can't create ranger");
     }
     this.spawn(BODY_RANGER, bodyParts);
 }
