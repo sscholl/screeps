@@ -1,4 +1,4 @@
 # screeps
-My screeps implementation. Development stopped since the game became Pay-To-Win.
+My screeps.com implementation. Development stopped since the game startet to cost money.
 
 The code have to be preprocessed by the C precompiler with the deploy.sh file.
