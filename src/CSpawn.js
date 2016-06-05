@@ -10,57 +10,49 @@ Spawn.prototype.spawn = function(body, bodyParts) {
     } else {
         if (result != ERR_BUSY)
             this.room.logCompact('Spawn error: ' + result 
-                + ' while try to spawn ' + JSON.stringify(bodyParts));
+                + ' while try to spawn ' + bodyParts);
     }
     return result;
 }
 
 Spawn.prototype.spawnDefault = function() {
     var bodyParts;
-    if (
-        this.room.creepsHarvester.length >= 1
-        && this.room.energyAvailable >= 750
-    ) {
+    if ( this.room.energyAvailable >= 750 ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
-    } else if (
-        this.room.creepsHarvester.length >= 1
-        && this.room.energyAvailable >= 550
-    ) {
+    } else if ( this.room.energyAvailable >= 550 ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
-    } else if (
-        this.room.creepsHarvester.length >= 1
-        && this.room.energyAvailable >= 500
-    ) {
+    } else if ( this.room.energyAvailable >= 500 ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
-    } else if (
-        this.room.creepsHarvester.length >= 1
-        && this.room.energyAvailable >= 400
-    ) {
+    } else if ( this.room.energyAvailable >= 400 ) {
         bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
-    } else if ( this.room.creepsHarvester.length >= 1 ) {
+    } else if ( this.room.creepsDefault.length >= 1 ) {
         bodyParts = [WORK, CARRY, MOVE, MOVE];
     } else {
         bodyParts = [WORK, CARRY, MOVE];
     }
     this.spawn(BODY_DEFAULT, bodyParts);
     var r = this.spawn(BODY_DEFAULT, bodyParts);
-    if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
-        this.spawnDefault();
+    if (r === ERR_NOT_ENOUGH_ENERGY ) {
+        this.room.logCompact("can't create default creep");
     }
 }
 
 Spawn.prototype.spawnHarvester = function() {
     var bodyParts;
-    if (this.room.energyAvailable >= 800)
+    if (this.room.energyAvailable >= 800) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE ];
-    else if (this.room.energyAvailable >= 600)
+    } else if (this.room.energyAvailable >= 600) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
-    else if (this.room.energyAvailable >= 550)
+    } else if (this.room.energyAvailable >= 550) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
-    else 
-        this.room.logError("can't create harvester");
+    } else {
+        this.room.logCompact("can't create harvester");
+        if ( this.room.creepsDefault.length < 1 )
+            this.spawnDefault();
+        return;
+    }
     var r = this.spawn(BODY_HARVESTER, bodyParts);
-    if (r === ERR_NOT_ENOUGH_ENERGY && this.room.creepsDefault.length < 1) {
+    if ( r === ERR_NOT_ENOUGH_ENERGY ) {
         this.spawnDefault();
     }
 }

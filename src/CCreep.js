@@ -10,7 +10,7 @@
 
 Creep.prototype.run = function() {
     var body = this.memory.body;
-    if (body === BODY_DEFAULT)     this.runDefault();
+    if (body === BODY_DEFAULT)          this.runDefault();
     else if (body === BODY_HARVESTER)   this.runDefault();
     else if (body === BODY_UPGRADER)    this.runUpgrader();
     else if (body === BODY_CARRIER)     this.runDefault();
@@ -50,27 +50,30 @@ Creep.prototype.moveAround = function() {
     else if (this.pos.y === 1)  this.move(BOTTOM);
     else if (this.pos.y === 48) this.move(TOP);
     else this.move(Game.time % 8 + 1);
-} 
+}
 
 Creep.prototype.moveRandom = function() {
     this.move(Math.floor(Math.random() * 8) % 8 + 1);
-} 
+}
 
 // ########### ENERGY SECTION ###########################################
 
 Creep.prototype.fillOnStructure = function(structure) {
-    if (structure instanceof Structure) {
+    if (structure instanceof StructureLink) {
         this.movePredefined(structure.pos);
         structure.transferEnergy(this);
+    } else if (structure instanceof StructureStorage) {
+        this.movePredefined(structure.pos);
+        structure.transfer(this, RESOURCE_ENERGY);
     } else {
         this.logError("this structure is not available");
     }
 }
 
 Creep.prototype.fillStructure = function(structure) {
-    if (structure instanceof Structure || structure instanceof Spawn) {
+    if (structure instanceof StructureStorage || structure instanceof StructureLink || structure instanceof StructureSpawn || structure instanceof StructureExtension) {
         this.movePredefined(structure.pos);
-        this.transferEnergy(structure);
+        this.transfer(structure, RESOURCE_ENERGY);
     } else {
         this.logError("this structure is not available");
     }

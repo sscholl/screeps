@@ -26,11 +26,11 @@ Room.prototype.initTasksStatic = function() {
             TASK_UPGRADE,
             this.controller.id, 
             this.controller.pos, 
-            this.controller.pos.getSpotsCnt()
+            9//this.controller.pos.getSpotsCnt()
         );
     } else {
         if (!this.defaultSpawn) {
-            
+            //No claimed controller
         }
     }
     TIMER_END(TIMER_MODULE_ROOM, 'initTasks')
@@ -80,7 +80,7 @@ Room.prototype.initTasksDynamic = function() {
         var task = creep.getCurrentTask();
         if ( task instanceof CTask ) {
             var source = task.getTarget();
-            if ( source !== null && !source.getMemory().linkId ) {
+            if ( source !== null && this.storage instanceof StructureStorage && this.storage.energy > 10000) { // && !source.getMemory().linkId
                 this.createTask(
                         TASK_GATHER, 
                         creep.id, 
@@ -90,7 +90,7 @@ Room.prototype.initTasksDynamic = function() {
             }
         }
     }
-    if (this.controller instanceof Structure) {
+    if (this.controller instanceof StructureController) {
         for (var i in this.extensions) {
             var ext = this.extensions[i];
             if (ext.energy < ext.energyCapacity) {
@@ -168,28 +168,30 @@ Room.prototype.assignTasks = function(withHandshake) {
     var taskList = tasks.getList();
     for (var i in taskList) { //taskList[i] is the taskCode
         var task = tasks.get(taskList[i]);
-        //TIMER_BEGIN_(TIMER_MODULE_ROOM, 'assignTask', task.getCode())
-        var assignments = task.getAssignments();
-        if (withHandshake) {
-            for (var creepName in assignments) {
-                var creep = Game.creeps[creepName];
-                if ( !creep ) {
-                    task.assignmentDelete(creepName);
-                } else if (!creep.hasTask(task)) {
-                    task.assignmentDelete(creepName);
-                    creep.taskDisassign(task);
-                }
-            }
-        }
-        while (task.getQtyAssigned() < task.getQty()) {
-            var creep = task.assignmentSearch();
-            if (creep instanceof Creep) {
-                task.assignmentCreate(creep);
-                creep.taskAssign(task);
-            } else {
-                //LOG_DEBUG("no creep found")
-                break;
-            }
+        if ( task instanceof CTask ) {
+		//TIMER_BEGIN_(TIMER_MODULE_ROOM, 'assignTask', task.getCode())
+		var assignments = task.getAssignments();
+		if (withHandshake) {
+		    for (var creepName in assignments) {
+		        var creep = Game.creeps[creepName];
+		        if ( !creep ) {
+		            task.assignmentDelete(creepName);
+		        } else if (!creep.hasTask(task)) {
+		            task.assignmentDelete(creepName);
+		            creep.taskDisassign(task);
+		        }
+		    }
+		}
+		while (task.getQtyAssigned() < task.getQty()) {
+		    var creep = task.assignmentSearch();
+		    if (creep instanceof Creep) {
+		        task.assignmentCreate(creep);
+		        creep.taskAssign(task);
+		    } else {
+		        //LOG_DEBUG("no creep found")
+		        break;
+		    }
+		}
         }
         //TIMER_END(TIMER_MODULE_ROOM, 'assignTask')
     }

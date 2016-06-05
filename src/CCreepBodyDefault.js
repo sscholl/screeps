@@ -87,7 +87,7 @@ Creep.prototype.taskHarvest = function() {
         var link = Game.getObjectById(source.getMemory().linkId);
         if (this.memory.body === BODY_HARVESTER && this.carry.energy > 0 && link instanceof Structure) {
             this.movePredefined(link.pos);
-            this.transferEnergy(link);
+            this.transfer(link,RESOURCE_ENERGY);
         } else {
             this.movePredefined(source.pos);
         }
@@ -127,7 +127,7 @@ Creep.prototype.taskGather = function() {
     if (target) {
         this.movePredefined(target.pos);
         if (this.pos.inRangeTo(target.pos, 1)) {
-            target.transferEnergy(this);
+            target.transfer(this,RESOURCE_ENERGY);
             var energys = target.pos.lookFor('energy');
             if (energys.length && energys[0] instanceof Energy)
                 this.pickup(energys[0]);
@@ -159,7 +159,7 @@ Creep.prototype.taskDeliver = function() {
     if (cur < max) {
         this.movePredefined(target.pos);
         if (this.pos.inRangeTo(target.pos, 1)) {
-            var result = this.transferEnergy(target);
+            var result = this.transfer(target,RESOURCE_ENERGY);
             if ( result === OK && this.getCurrentTask().getQty() <= this.carry.energy )
                 this.getCurrentTask().delete();
             this.taskDisassign();
@@ -168,7 +168,7 @@ Creep.prototype.taskDeliver = function() {
                 filter: function(object) {return object.structureType == STRUCTURE_EXTENSION && object.energy != object.energyCapacity;}
             });
             if (exts.length && exts[0]) {
-                var result = this.transferEnergy(exts[0]);
+                var result = this.transfer(exts[0],RESOURCE_ENERGY);
                 if ( result === OK ) {
                     var code = TASK_DELIVER + "_" + exts[0].pos.x + "_" + exts[0].pos.y;
                     this.room.getTasks().del(code);
@@ -188,7 +188,7 @@ Creep.prototype.taskUpgrade = function() {
         return;
     }
     var target = this.getCurrentTask().getTarget();
-    if (target !== null) {
+    if (target instanceof StructureController) {
         // todo add link logic
         this.movePredefined(target.pos);
         this.upgradeController(target);

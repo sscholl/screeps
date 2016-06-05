@@ -1,9 +1,8 @@
 module.exports = {
     memory: Memory.GameManager,
     
-    init: function (room) {
-    },
     run: function () {
+        if (this.memory === undefined) Memory.GameManager = {};
         if (!this.memory.timer || this.memory.timer <= 0) {
             this.memory.timer = 60;
             for(var i in Memory.creeps) {

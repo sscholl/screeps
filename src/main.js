@@ -1,4 +1,4 @@
-var time = Game.getUsedCpu();
+var time = Game.cpu.getUsed();
 console.log("LOAD TIME " + time);
 //######## Include Debug ######################################################
 
@@ -33,9 +33,9 @@ if (enable_profiling) {
 
         var f = c.prototype[n];
         c.prototype[n] = function() {
-            var ts = Game.getUsedCpu();
+            var ts = Game.cpu.getUsed();
             var rc = f.apply(this, arguments);
-            p.usage += Game.getUsedCpu() - ts;
+            p.usage += Game.cpu.getUsed() - ts;
             ++p.count;
             return rc;
         };
@@ -127,4 +127,4 @@ if (Game.time % report_interval == 0) {
 }
 
 
-console.log("MAIN TIME " + (Game.getUsedCpu() - time));
+console.log("MAIN TIME " + (Game.cpu.getUsed() - time));

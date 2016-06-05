@@ -48,10 +48,10 @@
     function timerBegin_(module, timerName, text) {
         logDetail('--> ' + timerName + ' ' + text);
         logLevelIncrease();
-        Memory.timer[timerName] = Game.getUsedCpu();
+        Memory.timer[timerName] = Game.cpu.getUsed();
     }
     function timerEnd_(module, timerName, text) {
-        Memory.timer[timerName] = Game.getUsedCpu() - Memory.timer[timerName];
+        Memory.timer[timerName] = Game.cpu.getUsed() - Memory.timer[timerName];
         logLevelDecrease();
         logDetail('<-- ' + timerName + ' [' + Memory.timer[timerName].toFixed(2) + '] ' + text
         );

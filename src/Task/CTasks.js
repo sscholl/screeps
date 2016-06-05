@@ -27,9 +27,19 @@ CTasks.prototype.getPositions = function() {
 };
 CTasks.prototype.get = function(taskCode) {
     var task = this.collection[taskCode];
-    if (task && task.constructor !== CTask)
-        task.__proto__ = CTask.prototype;
-    return task;
+    if (task !== undefined) {
+        if (task.constructor !== CTask) task.__proto__ = CTask.prototype;
+    
+        if ( task.valid() ) {
+            return task;
+        } else {
+            logError("task " + taskCode + " is invalid and was removed from task list.");
+            task.delete();
+            return undefined;
+        }
+    } else {
+        return undefined;
+    }
 };
 CTasks.prototype.add = function(task) {
     var myTask = this.get(task.getCode());
@@ -46,9 +56,10 @@ CTasks.prototype.add = function(task) {
  */
 CTasks.prototype.del = function(task) {
     var taskCode;
-    if (typeof task === 'string') taskCode = task;
-    else                          taskCode = task.getCode();
-    if (this.get(taskCode) instanceof CTask) {
+    if ( typeof task === 'string' )    taskCode = task;
+    else if ( task instanceof CTask )  taskCode = task.getCode();
+    else                               logError("Task invalid.");
+    if (this.collection[taskCode] instanceof CTask) {
         this.list.splice(this.list.indexOf(taskCode), 1);
         delete this.collection[taskCode];
     } else {

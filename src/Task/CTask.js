@@ -200,7 +200,7 @@ CTask.prototype.assignmentCreate = function(creep) {
     switch (this.type) {
         case TASK_HARVEST:
             if (creep.getBodyType() === BODY_HARVESTER)     qty = this.qty;
-            else                                            qty = 1;
+            else                                            qty = 0.5;
             break;
         case TASK_COLLECT: 
         case TASK_GATHER:       qty = 1;                                     break; 
@@ -226,6 +226,16 @@ CTask.prototype.assignmentCreate = function(creep) {
 CTask.prototype.assignmentDelete = function(creepName) {
     delete this.assignments[creepName];
     delete this.qtyAssigned;
+};
+
+/**
+ * Checks if the Task is the same.
+ * @param {CTask} task
+ * @return {Boolean} 
+ */
+CTask.prototype.valid = function() {
+    if (this.getTarget() instanceof RoomObject) return true;
+    else                                        return false;
 };
 
 /**
