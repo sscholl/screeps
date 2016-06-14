@@ -1,3 +1,6 @@
 [submodule "screeps-api"]
 	path = screeps-api
 	url = https://github.com/estelsmith/screeps-api.git
+[submodule "debug"]
+	path = src/debug
+	url = ssh://git@git.sdscholl.de:10022/sscholl/screeps-debug.git

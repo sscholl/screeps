@@ -3,10 +3,10 @@
  *
  * @constructor
  * @param {String}          type        [TASK_HARVEST|TASK_COLLECT|TASK_GATHER|TASK_DELIVER
- *                                      |TASK_UPGRADE|TASK_BUILD
- *                                      |TASK_REPAIR|TASK_FILLSTORAGE]
+ *                                      |'TASK_UPGRADE'|'TASK_BUILD'
+ *                                      |'TASK_REPAIR'|'TASK_FILLSTORAGE']
  * @param {String}          targetId    ID of the target
- * @param {RoomPosition}    pos     
+ * @param {RoomPosition}    pos
  * @param {Number}          qty         see getQty
  * @param {Bool}            energySource    true if task generates energy, false if consumes energy
  * @this {CTasks}
@@ -23,31 +23,31 @@ var CTask = function CTask(type, targetId, pos, qty, energySource, bodyTypes) {
     // object of the form {creepName1: {qty1}, creepName2: {qty2}, ...}
     this.assignments = {};
     switch (this.type) {
-        case TASK_HARVEST: this.bodyTypes = [BODY_HARVESTER, BODY_DEFAULT]; 
+        case 'TASK_HARVEST': this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
             this.energySource = true;
-            break; 
-        case TASK_COLLECT: 
-        case TASK_GATHER:       this.bodyTypes = [BODY_CARRIER, BODY_DEFAULT]; 
+            break;
+        case 'TASK_COLLECT':
+        case 'TASK_GATHER':       this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
             this.energySource = true;
-            break; 
-        case TASK_DELIVER:      this.bodyTypes = [BODY_CARRIER, BODY_DEFAULT]; 
+            break;
+        case 'TASK_DELIVER':      this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
             this.energySource = false;
-            break; 
-        case TASK_UPGRADE:      this.bodyTypes = [BODY_UPGRADER, BODY_DEFAULT]; 
+            break;
+        case 'TASK_UPGRADE':      this.bodyTypes = ['BODY_UPGRADER', 'BODY_DEFAULT'];
             this.energySource = false;
-            break; 
-        case TASK_BUILD:        this.bodyTypes = [BODY_DEFAULT]; 
+            break;
+        case 'TASK_BUILD':        this.bodyTypes = ['BODY_DEFAULT'];
             this.energySource = false;
-            break; 
-        case TASK_REPAIR:       this.bodyTypes = [BODY_DEFAULT];
+            break;
+        case 'TASK_REPAIR':       this.bodyTypes = ['BODY_DEFAULT'];
             this.energySource = false;
-            break; 
-        case TASK_FILLSTORAGE:  this.bodyTypes = [BODY_CARRIER_TINY, BODY_DEFAULT, BODY_CARRIER];
+            break;
+        case 'TASK_FILLSTORAGE':  this.bodyTypes = ['BODY_HARVESTER_TINY', 'BODY_DEFAULT', 'BODY_HARVESTER'];
             this.energySource = null;
-            break; 
-        case TASK_MOVE:         this.bodyTypes = [BODY_CARRIER, BODY_DEFAULT];
+            break;
+        case 'TASK_MOVE':         this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
             this.energySource = null;
-            break; 
+            break;
         default:
             this.logError('task type ' + type + ' not available.');
             return;
@@ -83,7 +83,7 @@ CTask.prototype.getRoom = function() {
  * TASK_DELIVER: how many energy is needed at the target
  * TASK_UPGRADE: how many upgrade spots are to occupy
  * TASK_BUILD: how many energy is needed to complete the contruction
- * TASK_REPAIR: how many energy is needed to repair the structure 
+ * TASK_REPAIR: how many energy is needed to repair the structure
  * TASK_FILLSTORAGE: how many spots
  * @return {Number}
  */
@@ -92,7 +92,7 @@ CTask.prototype.getQty = function() {
 };
 /**
  * Returns the qty that is already assigned to a creep.
- * @return {Number} 
+ * @return {Number}
  */
 CTask.prototype.getQtyAssigned = function() {
     //if (this.qtyAssigned === undefined) {
@@ -114,14 +114,14 @@ CTask.prototype.getBodyTypes = function() {
     return this.bodyTypes;
 };
 /**
- * Generates a unique code of the task. (todo: multiple dropped energy should be added to an existing task) 
- * @return {String} 
+ * Generates a unique code of the task. (todo: multiple dropped energy should be added to an existing task)
+ * @return {String}
  */
 CTask.prototype.getCode = function() {
     if (this.code === undefined) {
         if (this.getTarget() instanceof Creep)
             this.code = this.type + "_" + this.getTarget().name;
-        else 
+        else
             this.code = this.type + "_" + this.pos.x + "_" + this.pos.y;
     }
     return this.code;
@@ -130,25 +130,25 @@ CTask.prototype.getCode = function() {
 CTask.prototype.getPrio = function() {
     if (this.prio === undefined) {
         switch (this.type) {
-            case TASK_HARVEST: this.prio = 50; break; 
-            case TASK_COLLECT: 
-                if (this.getTarget().energy >= 100) this.prio = 65; 
+            case 'TASK_HARVEST': this.prio = 50; break;
+            case 'TASK_COLLECT':
+                if (this.getTarget().energy >= 100) this.prio = 65;
                 else this.prio = 60;
-            break; 
-            case TASK_GATHER:  this.prio = 62; break; 
-            case TASK_DELIVER:
+            break;
+            case 'TASK_GATHER':  this.prio = 62; break;
+            case 'TASK_DELIVER':
                 if (this.getTarget() instanceof Spawn)
-                    this.prio = 56; 
+                    this.prio = 56;
                 else if (this.getTarget().structureType === STRUCTURE_STORAGE)
-                    this.prio = 15; 
+                    this.prio = 15;
                 else
-                    this.prio = 55; 
-                break; 
-            case TASK_UPGRADE:      this.prio = 10; break; 
-            case TASK_BUILD:        this.prio = 30; break; 
-            case TASK_REPAIR:       this.prio = 40; break; 
-            case TASK_FILLSTORAGE:  this.prio = 20; break; 
-            case TASK_MOVE:         this.prio = 5; break; 
+                    this.prio = 55;
+                break;
+            case 'TASK_UPGRADE':      this.prio = 10; break;
+            case 'TASK_BUILD':        this.prio = 30; break;
+            case 'TASK_REPAIR':       this.prio = 40; break;
+            case 'TASK_FILLSTORAGE':  this.prio = 20; break;
+            case 'TASK_MOVE':         this.prio = 5; break;
             default:
                 this.logError('task type ' + type + ' not available.');
                 return;
@@ -161,7 +161,7 @@ CTask.prototype.getPrio = function() {
 
 /**
  * Returns the best matching creep for this task
- * @return {Creep} 
+ * @return {Creep}
  */
 CTask.prototype.assignmentSearch = function() {
     var creep = null;
@@ -198,18 +198,18 @@ CTask.prototype.assignmentSearch = function() {
 CTask.prototype.assignmentCreate = function(creep) {
     var qty = 0;
     switch (this.type) {
-        case TASK_HARVEST:
-            if (creep.getBodyType() === BODY_HARVESTER)     qty = this.qty;
+        case 'TASK_HARVEST':
+            if (creep.getBodyType() === 'BODY_HARVESTER')     qty = this.qty;
             else                                            qty = 0.5;
             break;
-        case TASK_COLLECT: 
-        case TASK_GATHER:       qty = 1;                                     break; 
-        case TASK_DELIVER:      qty = creep.carry.energy;                    break; 
-        case TASK_UPGRADE:      qty = 1;                                     break; 
-        case TASK_BUILD:
-        case TASK_REPAIR:       qty = 1;                                     break;
-        case TASK_FILLSTORAGE:  qty = 1;                                     break;
-        case TASK_MOVE:         qty = 1;                                     break;
+        case 'TASK_COLLECT':
+        case 'TASK_GATHER':       qty = 1;                                     break;
+        case 'TASK_DELIVER':      qty = creep.carry.energy;                    break;
+        case 'TASK_UPGRADE':      qty = 1;                                     break;
+        case 'TASK_BUILD':
+        case 'TASK_REPAIR':       qty = 1;                                     break;
+        case 'TASK_FILLSTORAGE':  qty = 1;                                     break;
+        case 'TASK_MOVE':         qty = 1;                                     break;
         default:
             this.logError("Can't assign task, type " + type + " not available.");
             return;
@@ -231,7 +231,7 @@ CTask.prototype.assignmentDelete = function(creepName) {
 /**
  * Checks if the Task is the same.
  * @param {CTask} task
- * @return {Boolean} 
+ * @return {Boolean}
  */
 CTask.prototype.valid = function() {
     if (this.getTarget() instanceof RoomObject) return true;
@@ -241,7 +241,7 @@ CTask.prototype.valid = function() {
 /**
  * Checks if the Task is the same.
  * @param {CTask} task
- * @return {Boolean} 
+ * @return {Boolean}
  */
 CTask.prototype.equals = function(task) {
     if (this.type === task.type

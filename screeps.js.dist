@@ -1,0 +1,9 @@
+module.exports = {
+    screeps: {
+        options: {
+            email: null,
+            password: null,
+            branch: 'default'
+        }
+    }
+};

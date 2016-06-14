@@ -1,0 +1,17 @@
+{
+  "name": "screeps",
+  "version": "1.0.0",
+  "description": "Screeps ES6 Library",
+  "main": "dist/main.js",
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-screeps": "^1.1.0",
+    "load-grunt-tasks": "^3.2.0"
+  },
+  "scripts": {
+    "build": "rm -r dist; mkdir -p dist; cp src/debug/*.js dist; cp src/*.js dist"
+  },
+  "author": "Simon Scholl <simon.scholl@me.com>",
+  "license": "MIT"
+}
