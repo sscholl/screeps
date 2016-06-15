@@ -1,12 +1,12 @@
-let Profiler = require('Profiler');
-let Logger = require('Logger');
+let Profiler            = require('Profiler');
+let Logger              = require('Logger');
 Profiler._.init();
 Logger._.init();
 
-var GameManager = require('GameManager');
+let GameManager         = require('GameManager');
 
-require('CTask');
-require('CTasks');
+let CTask               = require('CTask');
+let CTasks              = require('CTasks');
 require('CMap');
 require('CSpawn');
 require('CStructure');
@@ -40,11 +40,6 @@ module.exports.loop = function () {
 
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];
-
-        room.spawns = room.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_SPAWN}});
-        if (room.spawns.length > 0) {
-            room.defaultSpawn = room.spawns[0];
-        }
         room.run();
     }
 

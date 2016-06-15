@@ -1,3 +1,4 @@
+let CTask               = require('CTask');
 
 Creep.prototype.runDefault = function() {
     if (

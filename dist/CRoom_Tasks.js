@@ -1,6 +1,9 @@
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
+let CTask = require('CTask');
+let CTasks = require('CTasks');
+
 // ########### Room Tasks ############################################
 Room.prototype.getTasks = function() {
     if (this.memory.tasks === undefined) {
@@ -153,7 +156,9 @@ Room.prototype.initTasksDynamic2 = function() {
 
 Room.prototype.createTask = function(type, targetId, pos, qty, energySource, bodyTypes) {
     var task = new CTask(type, targetId, pos, qty, energySource, bodyTypes);
+    console.log(JSON.stringify(task));
     this.getTasks().add(task);
+    console.log(JSON.stringify(task));
 }
 
 Room.prototype.assignTasks = function(withHandshake) {
@@ -189,7 +194,7 @@ Room.prototype.assignTasks = function(withHandshake) {
     }
 }
 
-var methods = ['initTasksStatic', 'initTasksDynamic', 'initTasksDynamic2', 'createTask', 'assignTasks'];
+var methods = ['initTasksStatic', 'initTasksDynamic', 'initTasksDynamic2', 'createTask', 'assignTasks', 'getTasks'];
 for (var i in methods) {
     Profiler._.wrap('Room', Room, methods[i]);
     Logger._.wrap('Room', Room, methods[i]);

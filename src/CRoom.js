@@ -4,9 +4,14 @@ let Logger = require('Logger');
 // ######### Room #############################################################
 
 Room.prototype.run = function() {
+
+    this.spawns = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_SPAWN}});
+    if (this.spawns.length > 0) {
+        this.defaultSpawn = this.spawns[0];
+    }
+
     this.initCreeps();
-    return;
-    if (!this.memory.timer || this.memory.timer <= 0) {
+    if (!this.memory.timer || this.memory.timer % 600 === 0) {
             this.memory.timer = -1;
             this.initSources();
             this.memory.timer = 600;
@@ -17,8 +22,7 @@ Room.prototype.run = function() {
     this.loadConstructions();
     this.energy = this.findDroppedEnergy();
 
-
-    if (this.memory.timer % 15 == 0) {
+    if (this.memory.timer % 15 === 0) {
         this.initDynamicSources();
         this.initDynamicConstructions();
         this.initDynamicStructures();
@@ -46,11 +50,10 @@ Room.prototype.initSources = function() {
     for (var source of this.find(FIND_SOURCES))
         if (!this.memory.sources[source.id])
             this.memory.sources[source.id] = {id: source.id};
-
     this.memory.hostileSpawnIds = [];
-    this.memory.hostileSpawns = this.find(FIND_HOSTILE_STRUCTURES);
-    for (var hostileSpawnNr in this.memory.hostileSpawns) {
-        this.memory.hostileSpawnIds[hostileSpawnNr] = this.memory.hostileSpawns[hostileSpawnNr].id;
+    this.memory.hostileSpawns = this.find(STRUCTURE_KEEPER_LAIR);
+    for (var i in this.memory.hostileSpawns) {
+        this.memory.hostileSpawnIds[i] = this.memory.hostileSpawns[i].id;
     }
 }
 Room.prototype.loadSources = function() {

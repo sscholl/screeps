@@ -31,7 +31,7 @@ var Logger = class Logger {
         };
         this.REPORT_INTERVALL = 1000;
         if (Logger.level === undefined) Logger.level = 0;
-        Logger.indentation = ["", "  ", "    ", "      ", "        ", "          ", "            ", "              ", "                ", "                "];
+        Logger.indentation = ["", "  ", "    ", "      ", "        ", "          ", "            ", "              ", "                ", "                ", "                  ", "                    ", "                      ", "                        ", "                          ", "                            ", "                              ", "                                ", "                                  ", "                                    ", "                                      ", "                                        "];
     }
 
     /**
@@ -39,7 +39,6 @@ var Logger = class Logger {
      */
     init () {
         if (this.ACTIVE) {
-            Memory.timer = Memory.timer || {};
             var methods = [];
             if (this.MODULES.ROOM) {
                 this.wrap('Room', Room, 'find');
