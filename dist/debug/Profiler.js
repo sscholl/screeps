@@ -42,7 +42,7 @@ var Profiler = (function () {
             ROOM: true,
             ROOMPOSITION: true
         };
-        this.REPORT_INTERVALL = 100;
+        this.REPORT_INTERVALL = 1000;
     }
 
     /**

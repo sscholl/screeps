@@ -14,13 +14,13 @@ Object.defineProperty(Creep.prototype, "bodyType", {
             var work = this.getBodyPartCnt(WORK);
             var move = this.getBodyPartCnt(MOVE);
             var carry = this.getBodyPartCnt(CARRY);
-            var rattak = this.getBodyPartCnt(RANGED_ATTACK);
+            var rattack = this.getBodyPartCnt(RANGED_ATTACK);
             var heal = this.getBodyPartCnt(HEAL);
             if (work > 0) {
                 if (work === carry) this.memory.body = 'BODY_DEFAULT';else if (work <= 5) this.memory.body = 'BODY_HARVESTER';else this.memory.body = 'BODY_UPGRADER';
             } else if (carry > 0) {
                 if (carry === 1 && move === 1) this.memory.body = 'BODY_CARRIER_TINY';else this.memory.body = 'BODY_CARRIER';
-            } else if (rattak > 0) {
+            } else if (rattack > 0) {
                 this.memory.body = 'BODY_RANGER';
             } else if (heal > 0) {
                 this.memory.body = 'BODY_HEALER';
@@ -102,7 +102,9 @@ Creep.prototype.fillOnStructure = function (structure) {
     } else if (structure instanceof StructureLink) {
         this.movePredefined(structure.pos);
         structure.transferEnergy(this);
-    } else if (structure instanceof StructureStorage) {
+        this.movePredefined(structure.pos);
+        structure.transfer(this, RESOURCE_ENERGY);
+    } else if (structure instanceof StructureStorage || structure instanceof StructureContainer) {
         this.movePredefined(structure.pos);
         structure.transfer(this, RESOURCE_ENERGY);
     } else {
@@ -280,6 +282,7 @@ Creep.prototype.taskDeliver = function () {
     if (target !== null) {
         switch (target.structureType) {
             case STRUCTURE_STORAGE:
+            case STRUCTURE_CONTAINER:
                 cur = target.store.energy;max = target.storeCapacity;break;
             case STRUCTURE_EXTENSION:
             case STRUCTURE_SPAWN:

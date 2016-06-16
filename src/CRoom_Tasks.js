@@ -92,7 +92,17 @@ Room.prototype.initTasksDynamic = function() {
                 );
             }
         }
-        if (this.storage instanceof Structure) {
+        if (this.controllerRefill instanceof StructureContainer) {
+            if (this.controllerRefill.store.energy < this.controllerRefill.storeCapacity) {
+                this.createTask(
+                    'TASK_DELIVER',
+                    this.controllerRefill.id,
+                    this.controllerRefill.pos,
+                    this.controllerRefill.storeCapacity - this.controllerRefill.store.energy
+                );
+            }
+        }
+        if (this.storage instanceof StructureStorage) {
             if (this.storage.store.energy < this.storage.storeCapacity) {
                 this.createTask(
                     'TASK_DELIVER',
@@ -121,10 +131,23 @@ Room.prototype.initTasksDynamic2 = function() {
                         'TASK_BUILD',
                         construction.id,
                         construction.pos,
-                        construction.progressTotal - construction.progress,
-                        construction.pos.getSpotsCnt()
+                        construction.progressTotal - construction.progress
                 );
             }
+        }
+    }
+    var structuresNeedsRepair = this.find(FIND_STRUCTURES, {
+        filter: function(i) { return i.needsRepair(); }
+    });
+    for (var i in structuresNeedsRepair) {
+        var structure = structuresNeedsRepair[i];
+        if (structure instanceof Structure) {
+            this.createTask(
+                    'TASK_REPAIR',
+                    structure.id,
+                    structure.pos,
+                    structure.hitsMax - structure.hits
+            );
         }
     }
 }

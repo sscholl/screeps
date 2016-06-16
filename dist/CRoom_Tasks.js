@@ -61,7 +61,12 @@ Room.prototype.initTasksDynamic = function () {
                 this.createTask('TASK_DELIVER', spawn.id, spawn.pos, spawn.energyCapacity - spawn.energy);
             }
         }
-        if (this.storage instanceof Structure) {
+        if (this.controllerRefill instanceof StructureContainer) {
+            if (this.controllerRefill.store.energy < this.controllerRefill.storeCapacity) {
+                this.createTask('TASK_DELIVER', this.controllerRefill.id, this.controllerRefill.pos, this.controllerRefill.storeCapacity - this.controllerRefill.store.energy);
+            }
+        }
+        if (this.storage instanceof StructureStorage) {
             if (this.storage.store.energy < this.storage.storeCapacity) {
                 this.createTask('TASK_DELIVER', this.storage.id, this.storage.pos, this.storage.storeCapacity - this.storage.store.energy);
                 if (this.storageLink instanceof Structure && this.storageLink.energy >= 0) this.createTask('TASK_FILLSTORAGE', this.storageLink.id, this.storageLink.pos, 1);
@@ -75,8 +80,19 @@ Room.prototype.initTasksDynamic2 = function () {
         for (var i in this.constructions) {
             var construction = this.constructions[i];
             if (construction instanceof ConstructionSite) {
-                this.createTask('TASK_BUILD', construction.id, construction.pos, construction.progressTotal - construction.progress, construction.pos.getSpotsCnt());
+                this.createTask('TASK_BUILD', construction.id, construction.pos, construction.progressTotal - construction.progress);
             }
+        }
+    }
+    var structuresNeedsRepair = this.find(FIND_STRUCTURES, {
+        filter: function filter(i) {
+            return i.needsRepair();
+        }
+    });
+    for (var i in structuresNeedsRepair) {
+        var structure = structuresNeedsRepair[i];
+        if (structure instanceof Structure) {
+            this.createTask('TASK_REPAIR', structure.id, structure.pos, structure.hitsMax - structure.hits);
         }
     }
 };

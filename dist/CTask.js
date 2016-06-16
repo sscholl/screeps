@@ -196,7 +196,7 @@ var CTask = (function () {
                     case 'TASK_GATHER':
                         this.prio = 62;break;
                     case 'TASK_DELIVER':
-                        if (this.getTarget().structureType === STRUCTURE_STORAGE) {
+                        if (this.getTarget().structureType === STRUCTURE_STORAGE || this.getTarget().structureType === STRUCTURE_CONTAINER) {
                             this.prio = 15;
                         } else if (this.getTarget() instanceof Spawn) {
                             if (this.getTarget().id === this.getRoom().memory.controllerRefillId) {
@@ -288,6 +288,7 @@ var CTask = (function () {
                 case 'TASK_UPGRADE':
                     qty = 1;break;
                 case 'TASK_BUILD':
+                    qty = creep.carry.energy * 100;break;
                 case 'TASK_REPAIR':
                     qty = creep.carry.energy;break;
                 case 'TASK_FILLSTORAGE':

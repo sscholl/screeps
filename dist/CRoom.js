@@ -122,21 +122,26 @@ Room.prototype.initDynamicSources = function () {
 // ########### STRUCTURES SECTION #############################################
 Room.prototype.initDynamicStructures = function () {
     this.memory.extensionIds = [];
-
     this.extensions = this.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_EXTENSION } });
-    for (var extensionNr in this.extensions) {
-        if (this.extensions[extensionNr] instanceof StructureExtension) {
-            this.memory.extensionIds[extensionNr] = this.extensions[extensionNr].id;
+    for (var i in this.extensions) {
+        if (this.extensions[i] instanceof StructureExtension) {
+            this.memory.extensionIds[i] = this.extensions[i].id;
         } else {
-            this.extensions.splice(extensionNr);
+            this.logError('extension is not instanceof StructureExtension');
+            this.extensions.splice(i);
         }
     }
 
     if (this.storage instanceof StructureStorage && this.controller.pos.inRangeTo(this.storage, 4)) {
         this.memory.controllerRefillId = this.storage.id;
     } else {
-        var spawns = this.controller.pos.findInRange(FIND_MY_STRUCTURES, 4, { filter: { structureType: STRUCTURE_SPAWN } });
-        if (spawns.length > 0 && spawns[0] instanceof StructureSpawn) this.memory.controllerRefillId = spawns[0].id;
+        var containers = this.controller.pos.findInRange(FIND_STRUCTURES, 4, { filter: { structureType: STRUCTURE_CONTAINER } });
+        if (containers.length > 0 && containers[0] instanceof StructureContainer) {
+            this.memory.controllerRefillId = containers[0].id;
+        } else {
+            var spawns = this.controller.pos.findInRange(FIND_MY_STRUCTURES, 4, { filter: { structureType: STRUCTURE_SPAWN } });
+            if (spawns.length > 0 && spawns[0] instanceof StructureSpawn) this.memory.controllerRefillId = spawns[0].id;
+        }
     }
 
     if (this.getStorage() instanceof Structure) {
@@ -146,9 +151,9 @@ Room.prototype.initDynamicStructures = function () {
 };
 Room.prototype.loadStructures = function () {
     this.extensions = [];
-    for (var extensionNr in this.memory.extensionIds) {
-        var extensionId = this.memory.extensionIds[extensionNr];
-        this.extensions[extensionNr] = Game.getObjectById(extensionId);
+    for (var i in this.memory.extensionIds) {
+        var extensionId = this.memory.extensionIds[i];
+        this.extensions[i] = Game.getObjectById(extensionId);
     }
     if (this.memory.storageLinkId !== undefined) {
         this.storageLink = Game.getObjectById(this.memory.storageLinkId);
@@ -158,7 +163,7 @@ Room.prototype.loadStructures = function () {
     }
     if (this.memory.controllerRefillId !== undefined) {
         this.controllerRefill = Game.getObjectById(this.memory.controllerRefillId);
-        if (!(this.controllerRefill instanceof StructureStorage) && !(this.controllerRefill instanceof StructureSpawn)) {
+        if (!(this.controllerRefill instanceof StructureStorage || this.controllerRefill instanceof StructureSpawn || this.controllerRefill instanceof StructureContainer)) {
             this.logError("Controller Storage with ID " + this.memory.controllerRefillId + " does not exist.");
         }
     }

@@ -24,6 +24,10 @@ require('CRoom');
 
 module.exports.loop = function () {
     if (Game.cpu.tickLimit < 500) {
+        for (var creepName in Game.creeps) {
+            var creep = Game.creeps[creepName];
+            if (creep.bodyType === 'BODY_HARVESTER') creep.run();
+        }
         Logger.log("Execution of loop is not possible, because tick limit is " + Game.cpu.tickLimit + "<500");
         return;
     }
