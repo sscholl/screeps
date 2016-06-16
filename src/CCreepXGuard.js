@@ -1,3 +1,5 @@
+"use strict";
+
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runRanger = function() {
@@ -14,13 +16,13 @@ Creep.prototype.runRanger = function() {
     } else {
         var collectionPoint = Game.flags[this.room.name];
         if (collectionPoint) {
-            this.movePredefined(collectionPoint.pos, {}, true);
+            this.movePredefined(collectionPoint.pos, {}, 0);
         }
 
         // delete a custom structure
         //var stuff = this.room.lookAt(0,0);
         //var target = stuff[0];
-          //LOG_DEBUG(JSON.stringify(stuff));
+          //Logger.logDebug(JSON.stringify(stuff));
         //this.rangedAttack(target.structure);
 
         delete this.memory.currentTargetId;

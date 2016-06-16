@@ -1,3 +1,5 @@
+"use strict";
+
 Structure.prototype.isFull = function() {
     return this.energy >= this.energyCapacity;
 }
@@ -5,3 +7,4 @@ Structure.prototype.isFull = function() {
 Structure.prototype.isEmpty = function() {
     return this.energy <= 0;
 }
+ 

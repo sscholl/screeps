@@ -1,3 +1,5 @@
+"use strict";
+
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
@@ -44,7 +46,7 @@ Creep.prototype.runHealer = function() {
     } else {
         var collectionPoint = Game.flags[this.room.name];
         if (collectionPoint) {
-          this.movePredefined(collectionPoint.pos, {}, true);
+          this.movePredefined(collectionPoint.pos, {}, 0);
         } else {
             this.movePredefined(this.room.defaultSpawn);
         }

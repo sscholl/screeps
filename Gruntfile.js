@@ -17,8 +17,30 @@ module.exports = function(grunt) {
 
     require('load-grunt-tasks')(grunt);
     grunt.loadNpmTasks('grunt-screeps');
+    grunt.loadNpmTasks('grunt-contrib-watch');
 
     grunt.initConfig({
+        watch: {
+          scripts: {
+            files: ['src/*.js'],
+            tasks: ['babel', 'screeps']
+          }
+        },
+        babel: {
+            options: {
+                stage: 0
+            },
+            dist: {
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'src/',
+                        src: ['*.js', '**/*.js'],
+                        dest: 'dist/'
+                    }
+                ]
+            }
+        },
         screeps: {
             options: {},
             dist: {
@@ -36,5 +58,5 @@ module.exports = function(grunt) {
 
     grunt.config.merge(settings);
 
-    grunt.registerTask('default', ['screeps']);
+    grunt.registerTask('default', ['babel', 'screeps', 'watch']);
 };

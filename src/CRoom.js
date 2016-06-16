@@ -1,5 +1,9 @@
+"use strict";
+
 let Profiler = require('Profiler');
 let Logger = require('Logger');
+
+let CTask = require('CTask');
 
 // ######### Room #############################################################
 
@@ -9,7 +13,7 @@ Room.prototype.run = function() {
     if (this.spawns.length > 0) {
         this.defaultSpawn = this.spawns[0];
     }
-
+    this.resetFind();
     this.initCreeps();
     if (!this.memory.timer || this.memory.timer % 600 === 0) {
             this.memory.timer = -1;
@@ -22,15 +26,15 @@ Room.prototype.run = function() {
     this.loadConstructions();
     this.energy = this.findDroppedEnergy();
 
-    if (this.memory.timer % 15 === 0) {
+    if (this.memory.timer % 1 === 0) {
         this.initDynamicSources();
         this.initDynamicConstructions();
         this.initDynamicStructures();
     }
 
-    if (this.memory.timer === 600) {
+    if (this.memory.timer % 600 === 0) {
         this.initTasksStatic();
-    } else if (this.memory.timer % 30 == 0) {
+    } else if (this.memory.timer % 15 == 0) {
         this.initTasksDynamic2();
     } else if (this.memory.timer % 1 == 0) {
         this.initTasksDynamic();
@@ -74,20 +78,24 @@ Room.prototype.initDynamicSources = function() {
     this.memory.sourceLinkCnt = 0;
     for (var id in this.sources) {
         var source = this.sources[id];
+        if (source instanceof Source) {
+            source.getMemory().isSave = (
+                    this.creepsHealer.length >= 4  * this.hostileSpawns.length
+                    && this.creepsRanger.length >= 3 * this.hostileSpawns.length
+                ) || !source.getMemory().hasHostileSpawn;
+            if (source.getMemory().isSave) {
+                this.memory.sourcesSaveCount ++;
+                this.memory.sourceSpotCount += source.getSpotsCnt();
+            }
 
-        source.getMemory().isSave = (
-                this.creepsHealer.length >= 4  * this.hostileSpawns.length
-                && this.creepsRanger.length >= 3 * this.hostileSpawns.length
-            ) || !source.getMemory().hasHostileSpawn;
-        if (source.getMemory().isSave) {
-            this.memory.sourcesSaveCount ++;
-            this.memory.sourceSpotCount += source.getSpotsCnt();
-        }
-
-        var link = source.pos.findInRangeLink(2);
-        if (link[0] !== undefined) {
-            source.getMemory().linkId = link[0].id;
-            this.memory.sourceLinkCnt ++;
+            var link = source.pos.findInRangeLink(2);
+            if (link[0] !== undefined) {
+                source.getMemory().linkId = link[0].id;
+                this.memory.sourceLinkCnt ++;
+            }
+        } else {
+            delete this.sources[id];
+            this.logError('source not valid');
         }
     }
 };
@@ -108,10 +116,13 @@ Room.prototype.initDynamicStructures = function() {
         }
     }
 
-    var storages = this.controller.pos.findInRange(
-        FIND_MY_STRUCTURES, 4, {filter: {structureType: STRUCTURE_STORAGE}}
-    );
-    if (storages[0] !== undefined) this.memory.controllerStorageId = storages[0].id;
+    if ( this.storage instanceof StructureStorage && this.controller.pos.inRangeTo(this.storage, 4) ) {
+        this.memory.controllerRefillId = this.storage.id;
+    } else {
+            var spawns = this.controller.pos.findInRange( FIND_MY_STRUCTURES, 4, {filter: {structureType: STRUCTURE_SPAWN}} );
+            if (spawns.length > 0 && spawns[0] instanceof StructureSpawn)
+                this.memory.controllerRefillId = spawns[0].id;
+    }
 
     if (this.getStorage() instanceof Structure) {
         var links = this.getStorage().pos.findInRangeLink(2);
@@ -130,10 +141,10 @@ Room.prototype.loadStructures = function() {
             this.logError("Storage Link with ID " + this.memory.storageLinkId + " does not exist.");
         }
     }
-    if (this.memory.controllerStorageId !== undefined) {
-        this.controllerStorage = Game.getObjectById(this.memory.controllerStorageId);
-        if (!this.controllerStorage instanceof StructureStorage) {
-            this.logError("Controller Storage with ID " + this.memory.controllerStorageId + " does not exist.");
+    if (this.memory.controllerRefillId !== undefined) {
+        this.controllerRefill = Game.getObjectById(this.memory.controllerRefillId);
+        if ( ! (this.controllerRefill instanceof StructureStorage) && ! (this.controllerRefill instanceof StructureSpawn) ) {
+            this.logError("Controller Storage with ID " + this.memory.controllerRefillId + " does not exist.");
         }
     }
 
@@ -184,8 +195,8 @@ Room.prototype.initCreeps = function() {
     this.creepsDefault = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_DEFAULT'}}});
     this.creepsHarvester = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_HARVESTER'}}});
     this.creepsUpgrader = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_UPGRADER'}}});
-    this.creepsCarrier = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_HARVESTER'}}});
-    this.creepsCarrierTiny = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_HARVESTER_TINY'}}});
+    this.creepsCarrier = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_CARRIER'}}});
+    this.creepsCarrierTiny = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_CARRIER_TINY'}}});
     this.creepsRanger = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_RANGER'}}});
     this.creepsHealer = this.find(FIND_MY_CREEPS, {filter: {memory: {body: 'BODY_HEALER'}}});
     //this.creeps = this.find(FIND_MY_CREEPS);
@@ -195,22 +206,17 @@ Room.prototype.getDefaultHarvesterCount = function() {
     if (this.defaultHarvesterCount === undefined) {
         this.defaultHarvesterCount = 0;
         if (this.creepsHarvester.length === 0) {
-            for (var id in this.sources) {
-                var source = this.sources[id];
-                if (source.getMemory().isSave)
-                    if (source.getMemory().creepName) ++ this.defaultHarvesterCount;
-                    else this.defaultHarvesterCount += source.getSpotsCnt();
-            }
+            this.defaultHarvesterCount = 1;
         }
     }
     return this.defaultHarvesterCount;
 };
 Room.prototype.getDefaultUpgraderCount = function() {
-    if (this.controllerStorage instanceof StructureStorage) return 0;
-    else return 1;
+    if ( this.controllerRefill instanceof Structure)    return 0;
+    else                                                return 1;
 };
 Room.prototype.getDefaultCarrierCount = function() {
-    /*if (! (this.controllerStorage instanceof StructureStorage)){
+    /*if (! (this.controllerRefill instanceof Structure)){
         return 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
     } else*/ return 0;
 };
@@ -229,6 +235,16 @@ Room.prototype.creepsRequired = function() {
         + this.getDefaultBuilderCount(); //harvester, upgrader, @TODO: builder/repairer
 };
 
+
+Room.prototype.creepsHarvesterCnt = function() {
+    var cnt = 0;
+    var tasks = this.getTasks();
+    for ( var i in tasks.collection )
+        if ( tasks.collection[i].getType() === 'TASK_HARVEST' ) {
+            cnt += Math.min(tasks.collection[i].getQty() / 2, tasks.collection[i].getCnt());
+        }
+    return cnt;
+};
 /**
  * Calculates the number of required carrier creeps.
  * Depends on harvesters (harvesters create energy, which is just dropped)
@@ -238,8 +254,19 @@ Room.prototype.creepsRequired = function() {
  */
 Room.prototype.creepsCarrierCnt = function() {
     var cnt = 0;
-    //if (this.controllerStorage instanceof StructureStorage)
-    cnt += (1.5 * this.creepsHarvester.length) - this.memory.sourceLinkCnt; // this.memory.sourcesSaveCount- this.memory.sourceLinkCnt
+
+    //cnt += (2 * this.creepsHarvester.length) - this.memory.sourceLinkCnt; // this.memory.sourcesSaveCount-
+    for (var i in this.creepsHarvester) {
+        var creep = this.creepsHarvester[i];
+        var task = creep.getCurrentTask();
+        if ( task instanceof CTask ) {
+            var source = task.getTarget();
+            if ( source instanceof Source) {
+                cnt += source.getMemory().linkId ? 1 : 2;
+            }
+        }
+    }
+
     return cnt;
 };
 Room.prototype.creepsCarrierTinyCnt = function() {
@@ -249,11 +276,13 @@ Room.prototype.creepsCarrierTinyCnt = function() {
 };
 Room.prototype.getCreepsUpgraderCnt = function() {
     if (this.creepsUpgraderCnt === undefined) {
-        if (this.controllerStorage instanceof StructureStorage) {
+        if (this.controllerRefill instanceof Structure) {
             this.creepsUpgraderCnt = 1;
-            if (this.controllerStorage.store.energy > 900000) {
-                ++ this.creepsUpgraderCnt;
-                if (this.controllerStorage.store.energy > 920000) ++ this.creepsUpgraderCnt;
+            if (this.controllerRefill instanceof StructureStorage) {
+                if (this.storage.store.energy > 900000) {
+                    ++ this.creepsUpgraderCnt;
+                    if (this.storage.store.energy > 920000) ++ this.creepsUpgraderCnt;
+                }
             }
         }
     }
@@ -266,18 +295,14 @@ Room.prototype.spawnAction = function() {
         var spawn = this.spawns[spawnId];
 
         if ( this.creepsDefault.length >= this.creepsRequired()
-            && this.creepsHarvester.length < this.memory.sourcesSaveCount
-            && this.extensions.length >= 5
+            && this.creepsHarvester.length < this.creepsHarvesterCnt()
         ) {
             spawn.spawnHarvester();
         } else if (this.creepsDefault.length < this.creepsRequired()) {
             spawn.spawnDefault();
-        } else if ( this.creepsHarvester.length >= 1
-            && this.creepsUpgrader.length < this.getCreepsUpgraderCnt()
-            && this.extensions.length >= 20
-        ) {
+        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt() ) {
             spawn.spawnUpgrader();
-        } else if ( this.controllerStorage instanceof StructureStorage
+        } else if ( this.controller instanceof StructureStorage
             && this.storageLink instanceof StructureLink
             && this.creepsCarrierTiny.length < this.creepsCarrierTinyCnt()
         ) {
@@ -294,12 +319,24 @@ Room.prototype.spawnAction = function() {
             && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
+        } else if ( this.isEnergyMax() && this.creepsUpgrader.length < 4 ) { // spawn another upgrader, because has to many energy
+            spawn.spawnUpgrader();
         } else {
             this.log('SPAWN: no creep is required');
         }
         break; // todo: multispawn problem quickfix
     }
 };
+
+Room.prototype.hasEnergy = function(e) {
+    return this.energyAvailable >= e;
+}
+Room.prototype.hasEnergyCapacity = function(e) {
+    return this.energyCapacityAvailable >= e;
+}
+Room.prototype.isEnergyMax = function(e) {
+    return this.energyCapacityAvailable === this.energyAvailable;
+}
 
 // ########### HOSTILE SECTION ###########################################
 Room.prototype.getHostileCreeps = function() {
@@ -351,6 +388,12 @@ Room.prototype.hasCreepFull = function(bodyType, setNoCreep) {
     return this.noCreepFull[bodyType] === undefined;
 };
 
+Room.prototype.resetFind = function(bodyType, setNoCreep) {
+    delete this.noCreep;
+    delete this.noCreepEmpty;
+    delete this.noCreepFull;
+};
+
 // ########### LOGGING SECTION ############################################
 Room.prototype.log = function(message) {
     Logger.log('[' + this.name + "] " + message);
@@ -359,7 +402,7 @@ Room.prototype.logError = function(message) {
     Logger.logError('[' + this.name + "] " + message);
 };
 
-var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'assignTasks', 'linkAction', 'spawnAction'];
+var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
 for (var i in methods) {
     Profiler._.wrap('Room', Room, methods[i]);
     Logger._.wrap('Room', Room, methods[i]);

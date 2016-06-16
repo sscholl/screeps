@@ -1,26 +1,9 @@
-"use strict";
+'use strict';
 
 var Profiler = require('Profiler');
 var Logger = require('Logger');
 Profiler._.init();
 Logger._.init();
-
-var GameManager = require('GameManager');
-
-var CTask = require('CTask');
-var CTasks = require('CTasks');
-require('CMap');
-require('CSpawn');
-require('CStructure');
-require('CSource');
-require('CRoomPosition_Find');
-require('CRoomPosition');
-require('CCreep');
-require('CCreepXGuard');
-require('CCreepXHealer');
-require('CRoom_Find');
-require('CRoom_Tasks');
-require('CRoom');
 
 module.exports.loop = function () {
     if (Game.cpu.tickLimit < 500) {
@@ -30,20 +13,16 @@ module.exports.loop = function () {
 
     var time = Game.cpu.getUsed();
     Logger.functionEnter("LOAD TIME " + time);
+
     Logger.log("Game.cpu.limit " + Game.cpu.limit);
     Logger.log("Game.cpu.tickLimit " + Game.cpu.tickLimit);
     Logger.log("Game.cpu.bucket " + Game.cpu.bucket);
 
-    GameManager._.run();
-
+    // do someething time consuming
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];
-        room.run();
-    }
-
-    for (var creepName in Game.creeps) {
-        var creep = Game.creeps[creepName];
-        creep.run();
+        var spawn = room.find(FIND_MY_SPAWNS)[0];
+        for (var i = 0; i < 2; ++i) room.findPath(spawn.pos.findClosestByPath(FIND_SOURCES).pos, spawn.pos);
     }
 
     Profiler._.report();

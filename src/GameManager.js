@@ -1,3 +1,5 @@
+"use strict";
+
 let Logger = require('Logger');
 let Profiler = require('Profiler');
 
@@ -31,32 +33,36 @@ var GameManager = class GameManager {
     }
 
     /**
-     * Instantiate the Profiler class
+     * Instantiate the GameManager class
      * @constructor
-     * @this {Profiler}
+     * @this {GameManager}
      */
     constructor () {
     }
 
     /**
-     * Apply the wrapper functions to classes to measure timings
+     *
      */
-    init () {
-
-        if (!this.memory.timer || this.memory.timer <= 0) {
-            this.memory.timer = 60;
-            this.garbageCollection;
-        }
-        -- this.memory.timer;
+    run () {
+        this.garbageCollection();
     }
 
     /**
-     * Apply the wrapper functions to classes to measure timings
+     *
      */
     garbageCollection () {
-        for(var i in Memory.creeps)
-            if(!Game.creeps[i])
-                delete Memory.creeps[i];
+        if (Game.time % 1000 == 0) {
+        	if (Memory.creeps)
+                _.difference(Object.keys(Memory.creeps),Object.keys(Game.creeps)).forEach(function(key) {delete Memory.creeps[key]});
+        	if (Memory.flags)
+                _.difference(Object.keys(Memory.flags),Object.keys(Game.flags)).forEach(function(key) {delete Memory.flags[key]});
+        	if (Memory.rooms)
+                _.difference(Object.keys(Memory.rooms),Object.keys(Game.rooms)).forEach(function(key) {delete Memory.rooms[key]});
+        	if (Memory.spawns)
+                _.difference(Object.keys(Memory.spawns),Object.keys(Game.spawns)).forEach(function(key) {delete Memory.spawns[key]});
+        	if (Memory.structures)
+                _.difference(Object.keys(Memory.structures),Object.keys(Game.structures)).forEach(function(key) {delete Memory.structures[key]});
+        }
     }
 
 };

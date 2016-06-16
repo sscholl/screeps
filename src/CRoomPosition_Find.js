@@ -1,3 +1,5 @@
+"use strict";
+
 // ######## Finds - RoomPosition ##############################################
 RoomPosition.prototype.findEnemiesInAttackRange = function (opts) {
     return this.findInRange(FIND_HOSTILE_CREEPS, 4, opts);
@@ -39,7 +41,7 @@ RoomPosition.prototype.findClosestEnergyContainer = function (opts) {
     else if (spawn && rangeS <= rangeE)
         return spawn;
     else
-        LOG_DEBUG("error while findng a energy source");
+        Logger.logDebug("error while findng a energy source");
 };
 
 RoomPosition.prototype.findInRangeLink = function (range) {

@@ -1,3 +1,5 @@
+"use strict";
+
 let Profiler            = require('Profiler');
 let Logger              = require('Logger');
 Profiler._.init();
@@ -14,8 +16,6 @@ require('CSource');
 require('CRoomPosition_Find');
 require('CRoomPosition');
 require('CCreep');
-require('CCreepBodyDefault');
-require('CCreepXUpgrader');
 require('CCreepXGuard');
 require('CCreepXHealer');
 require('CRoom_Find');
@@ -36,7 +36,7 @@ module.exports.loop = function () {
     Logger.log("Game.cpu.tickLimit " + Game.cpu.tickLimit);
     Logger.log("Game.cpu.bucket " + Game.cpu.bucket);
 
-    GameManager._.init();
+    GameManager._.run();
 
     for (var roomName in Game.rooms) {
         var room = Game.rooms[roomName];

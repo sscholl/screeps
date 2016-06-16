@@ -1,3 +1,5 @@
+"use strict";
+
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 

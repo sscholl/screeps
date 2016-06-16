@@ -1,4 +1,13 @@
+"use strict";
+
+let Profiler = require('Profiler');
+let Logger = require('Logger');
+
 var CTask = class CTask {
+
+    get multiTask () {
+        return {'BODY_DEFAULT': false, 'BODY_HARVESTER': true, 'BODY_CARRIER': false, 'BODY_CARRIER_TINY': true, 'BODY_UPGRADER': true, } ;
+    }
 
     /**
      * Creates an instance of CTask.
@@ -13,49 +22,56 @@ var CTask = class CTask {
      * @param {Bool}            energySource    true if task generates energy, false if consumes energy
      * @this {CTasks}
      */
-    constructor (type, targetId, pos, qty, energySource, bodyTypes) {
+    constructor (type, targetId, pos, qty, cnt) {
         this.type           = type;
         this.targetId       = targetId;
         this.pos            = pos;
         this.qty            = qty;
         this.qtyAssigned    = 0;
+        this.cnt            = cnt;
 
         // todo: add priority. e.g. Repair a rampart with 1M has low prio whereas a source with a little dmg has high prio
 
         // object of the form {creepName1: {qty1}, creepName2: {qty2}, ...}
         this.assignments = {};
         switch (this.type) {
-            case 'TASK_HARVEST': this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
+            case 'TASK_HARVEST':
+                this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
                 this.energySource = true;
                 break;
             case 'TASK_COLLECT':
-            case 'TASK_GATHER':       this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
+            case 'TASK_GATHER':
+                this.bodyTypes = ['BODY_CARRIER', 'BODY_DEFAULT'];
                 this.energySource = true;
                 break;
-            case 'TASK_DELIVER':      this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
+            case 'TASK_DELIVER':
+                this.bodyTypes = ['BODY_CARRIER', 'BODY_DEFAULT'];
                 this.energySource = false;
                 break;
-            case 'TASK_UPGRADE':      this.bodyTypes = ['BODY_UPGRADER', 'BODY_DEFAULT'];
+            case 'TASK_UPGRADE':
+                this.bodyTypes = ['BODY_UPGRADER', 'BODY_DEFAULT'];
                 this.energySource = false;
                 break;
-            case 'TASK_BUILD':        this.bodyTypes = ['BODY_DEFAULT'];
+            case 'TASK_BUILD':
+                this.bodyTypes = ['BODY_DEFAULT'];
                 this.energySource = false;
                 break;
-            case 'TASK_REPAIR':       this.bodyTypes = ['BODY_DEFAULT'];
+            case 'TASK_REPAIR':
+                this.bodyTypes = ['BODY_DEFAULT'];
                 this.energySource = false;
                 break;
-            case 'TASK_FILLSTORAGE':  this.bodyTypes = ['BODY_HARVESTER_TINY', 'BODY_DEFAULT', 'BODY_HARVESTER'];
+            case 'TASK_FILLSTORAGE':
+                this.bodyTypes = ['BODY_CARRIER_TINY', 'BODY_DEFAULT', 'BODY_CARRIER'];
                 this.energySource = null;
                 break;
-            case 'TASK_MOVE':         this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT'];
+            case 'TASK_MOVE':
+                this.bodyTypes = ['BODY_CARRIER', 'BODY_DEFAULT'];
                 this.energySource = null;
                 break;
             default:
                 this.logError('task type ' + type + ' not available.');
                 return;
         }
-        if (energySource !== undefined) this.energySource = energySource;
-        if (bodyTypes !== undefined)    this.bodyTypes = bodyTypes;
     }
 
     getType () {
@@ -111,6 +127,14 @@ var CTask = class CTask {
         return this.qtyAssigned;
     }
 
+    /**
+     * Returns the number of maximum creeps on that task
+     * @return {Number}
+     */
+     getCnt () {
+         return this.cnt;
+    }
+
     getAssignments () {
         return this.assignments;
     }
@@ -147,12 +171,17 @@ var CTask = class CTask {
                 break;
                 case 'TASK_GATHER':  this.prio = 62; break;
                 case 'TASK_DELIVER':
-                    if (this.getTarget() instanceof Spawn)
-                        this.prio = 56;
-                    else if (this.getTarget().structureType === STRUCTURE_STORAGE)
+                    if (this.getTarget().structureType === STRUCTURE_STORAGE) {
                         this.prio = 15;
-                    else
+                    } else if (this.getTarget() instanceof Spawn ) {
+                        if (this.getTarget().id === this.getRoom().memory.controllerRefillId) {
+                            this.prio = 50;
+                        } else {
+                            this.prio = 56;
+                        }
+                    } else {
                         this.prio = 55;
+                    }
                     break;
                 case 'TASK_UPGRADE':      this.prio = 10; break;
                 case 'TASK_BUILD':        this.prio = 30; break;
@@ -175,28 +204,34 @@ var CTask = class CTask {
      */
     assignmentSearch () {
         var creep = null;
-        var task = this;
-        _.forEach(this.getBodyTypes(), function(bodyType) {
-            var room = task.getRoom();
-            if (!creep) {
-                if (task.energySource === true)  {
+        var bodyTypes = this.getBodyTypes();
+        for ( var i in bodyTypes ) {
+            var bodyType = bodyTypes[i];
+            var room = this.getRoom();
+            if ( !creep ) {
+                if ( this.multiTask[bodyType] ) {
+                    if (room.hasCreepFull(bodyType)) {
+                        creep = this.getPos().findClosestCreep(bodyType);
+                        if (!(creep instanceof Creep)) room.hasCreep(bodyType, true);
+                    }
+                } else if (this.energySource === true)  {
                     if (room.hasCreepEmpty(bodyType)) {
-                        creep = task.getPos().findClosestCreepEmpty(bodyType);
+                        creep = this.getPos().findClosestCreepEmpty(bodyType);
                         if (!(creep instanceof Creep)) room.hasCreepEmpty(bodyType, true);
                     }
-                } else if (task.energySource === false)  {
+                } else if (this.energySource === false)  {
                     if (room.hasCreepFull(bodyType)) {
-                        creep = task.getPos().findClosestCreepFull(bodyType);
+                        creep = this.getPos().findClosestCreepFull(bodyType);
                         if (!(creep instanceof Creep)) room.hasCreepFull(bodyType, true);
                     }
                 } else {
                     if (room.hasCreepFull(bodyType)) {
-                        creep = task.getPos().findClosestCreep(bodyType);
+                        creep = this.getPos().findClosestCreep(bodyType);
                         if (!(creep instanceof Creep)) room.hasCreep(bodyType, true);
                     }
                 }
             }
-        });
+        }
         return creep;
     }
 
@@ -209,15 +244,15 @@ var CTask = class CTask {
         var qty = 0;
         switch (this.type) {
             case 'TASK_HARVEST':
-                if (creep.getBodyType() === 'BODY_HARVESTER')     qty = this.qty;
-                else                                            qty = 0.5;
+                if (creep.getBodyType() === 'BODY_HARVESTER')   qty = creep.getBodyPartCnt(WORK);
+                else                                            qty = 1;
                 break;
             case 'TASK_COLLECT':
             case 'TASK_GATHER':       qty = 1;                                     break;
             case 'TASK_DELIVER':      qty = creep.carry.energy;                    break;
             case 'TASK_UPGRADE':      qty = 1;                                     break;
             case 'TASK_BUILD':
-            case 'TASK_REPAIR':       qty = 1;                                     break;
+            case 'TASK_REPAIR':       qty = creep.carry.energy;                    break;
             case 'TASK_FILLSTORAGE':  qty = 1;                                     break;
             case 'TASK_MOVE':         qty = 1;                                     break;
             default:
@@ -258,8 +293,9 @@ var CTask = class CTask {
             && this.targetId === task.targetId
             && this.pos === task.pos
             && this.qty === task.qty //qty can change
+            && this.cnt === task.cnt
+            && this.bodyTypes === task.bodyTypes
             && this.energySource === task.energySource
-            && this.energySink === task.energySink
         ) {
             return true;
         } else {
@@ -276,8 +312,9 @@ var CTask = class CTask {
         this.targetId = task.targetId;
         this.pos = task.pos;
         this.qty = task.qty;
+        this.cnt = task.cnt;
+        this.bodyTypes = task.bodyTypes;
         this.energySource = task.energySource;
-        this.energySink = task.energySink;
     }
 
     /**
@@ -290,3 +327,9 @@ var CTask = class CTask {
 };
 
 module.exports = CTask;
+
+var methods = ['assignmentSearch'];
+for (var i in methods) {
+    Profiler._.wrap('CTask', CTask, methods[i]);
+    Logger._.wrap('CTask', CTask, methods[i]);
+}
