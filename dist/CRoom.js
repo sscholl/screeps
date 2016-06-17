@@ -317,7 +317,7 @@ Room.prototype.spawnAction = function () {
             spawn.spawnHealer();
         } else if (this.creepsRanger.length < 4 && this.extensions.length >= 20 && this.energyAvailable >= this.energyCapacityAvailable) {
             spawn.spawnRanger();
-        } else if (this.isEnergyMax() && this.creepsUpgrader.length < 4) {
+        } else if (this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 8) {
             // spawn another upgrader, because has to many energy
             spawn.spawnUpgrader();
         } else {

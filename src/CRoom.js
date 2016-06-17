@@ -321,7 +321,7 @@ Room.prototype.spawnAction = function() {
             && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
-        } else if ( this.isEnergyMax() && this.creepsUpgrader.length < 4 ) { // spawn another upgrader, because has to many energy
+        } else if ( this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 8 ) { // spawn another upgrader, because has to many energy
             spawn.spawnUpgrader();
         } else {
             this.log('SPAWN: no creep is required');
@@ -394,6 +394,12 @@ Room.prototype.resetFind = function(bodyType, setNoCreep) {
     delete this.noCreep;
     delete this.noCreepEmpty;
     delete this.noCreepFull;
+};
+
+Room.prototype.findDroppedEnergy = function() {
+    return this.find(FIND_DROPPED_ENERGY,
+        { filter: function (energy) { return energy.energy >= 20; } }
+    );
 };
 
 // ########### LOGGING SECTION ############################################

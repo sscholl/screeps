@@ -13,12 +13,10 @@ require('CMap');
 require('CSpawn');
 require('CStructure');
 require('CSource');
-require('CRoomPosition_Find');
 require('CRoomPosition');
 require('CCreep');
 require('CCreepXGuard');
 require('CCreepXHealer');
-require('CRoom_Find');
 require('CRoom_Tasks');
 require('CRoom');
 

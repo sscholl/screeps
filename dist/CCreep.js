@@ -363,12 +363,17 @@ Creep.prototype.taskRepair = function () {
         return;
     }
     var target = this.getCurrentTask().getTarget();
-    if (target !== null) {
-        this.movePredefined(target.pos, {}, 3);
-        var result = this.repair(target);
-        if (result !== OK && result !== ERR_NOT_IN_RANGE) {
-            this.logError(this.name + " can't repair " + result);
-            if (result === ERR_NO_BODYPART) this.movePredefined(this.room.defaultSpawn.pos);
+    if (target instanceof Structure) {
+        if (target.hits >= target.hitsMax) {
+            this.getCurrentTask()['delete']();
+            this.taskDisassign();
+        } else {
+            this.movePredefined(target.pos, {}, 3);
+            var result = this.repair(target);
+            if (result !== OK && result !== ERR_NOT_IN_RANGE) {
+                this.logError(this.name + " can't repair " + result);
+                if (result === ERR_NO_BODYPART) this.movePredefined(this.room.defaultSpawn.pos);
+            }
         }
     } else {
         this.logError("target structure not valid");
