@@ -1,5 +1,8 @@
 "use strict";
 
+module.exports = function () {
+}
+
 // ########### GENERAL SECTION #########################################
 
 Source.prototype.memory = undefined;

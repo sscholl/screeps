@@ -3,6 +3,14 @@
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
+module.exports = function () {
+    var methods = ['runHealer'];
+    for (var i in methods) {
+        Profiler._.wrap('Creep', Creep, methods[i]);
+        Logger._.wrap('Creep', Creep, methods[i]);
+    }
+}
+
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runHealer = function() {
@@ -51,10 +59,4 @@ Creep.prototype.runHealer = function() {
             this.movePredefined(this.room.defaultSpawn);
         }
     }
-}
-
-var methods = ['runHealer'];
-for (var i in methods) {
-    Profiler._.wrap('Creep', Creep, methods[i]);
-    Logger._.wrap('Creep', Creep, methods[i]);
 }

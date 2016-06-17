@@ -24,12 +24,19 @@ var GameManager = class GameManager {
     }
 
     /**
-     * Get memory
-     * @return {Object}
+     * Init the class
+     * @return {GameManager}
      */
-    get memory () {
-       if (Memory.GameManager === undefined) Memory.GameManager = {};
-       return Memory.GameManager;
+    static init () {
+        if (GameManager._init !== true) {
+           GameManager._init = true;
+
+           var methods = [];
+           for (var i in methods) {
+               Profiler._.wrap('GameManager', GameManager, methods[i]);
+               Logger._.wrap('GameManager', GameManager, methods[i]);
+           }
+        }
     }
 
     /**
@@ -38,6 +45,16 @@ var GameManager = class GameManager {
      * @this {GameManager}
      */
     constructor () {
+        GameManager.init();
+    }
+
+    /**
+     * Get memory
+     * @return {Object}
+     */
+    get memory () {
+       if (Memory.GameManager === undefined) Memory.GameManager = {};
+       return Memory.GameManager;
     }
 
     /**
@@ -68,9 +85,3 @@ var GameManager = class GameManager {
 };
 
 module.exports = GameManager;
-
-var methods = ['init'];
-for (var i in methods) {
-    Profiler._.wrap('GameManager', GameManager, methods[i]);
-    Logger._.wrap('GameManager', GameManager, methods[i]);
-}

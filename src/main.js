@@ -2,23 +2,18 @@
 
 let Profiler            = require('Profiler');
 let Logger              = require('Logger');
-Profiler._.init();
-Logger._.init();
 
 let GameManager         = require('GameManager');
 
 let CTask               = require('CTask');
 let CTasks              = require('CTasks');
-require('CMap');
-require('CSpawn');
-require('CStructure');
-require('CSource');
-require('CRoomPosition');
-require('CCreep');
-require('CCreepXGuard');
-require('CCreepXHealer');
-require('CRoom_Tasks');
-require('CRoom');
+
+
+var includes = ['CMap', 'CSpawn', 'CStructure', 'CSource', 'CRoomPosition', 'CCreep', 'CCreepXGuard', 'CCreepXHealer', 'CRoom_Tasks', 'CRoom'];
+var modules = [];
+for (var i in includes) {
+   modules.push(require(includes[i]));
+}
 
 
 
@@ -31,6 +26,11 @@ module.exports.loop = function () {
         Logger.log("Execution of loop is not possible, because tick limit is " + Game.cpu.tickLimit + "<500");
         return;
     }
+
+    for (var i in modules) modules[i]();
+
+    Profiler._.init();
+    Logger._.init();
 
     var time = Game.cpu.getUsed();
     Logger.functionEnter("LOAD TIME " + time);

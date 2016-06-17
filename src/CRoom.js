@@ -5,6 +5,14 @@ let Logger = require('Logger');
 
 let CTask = require('CTask');
 
+module.exports = function () {
+    var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
+    for (var i in methods) {
+        Profiler._.wrap('Room', Room, methods[i]);
+        Logger._.wrap('Room', Room, methods[i]);
+    }
+}
+
 // ######### Room #############################################################
 
 Room.prototype.run = function() {
@@ -409,9 +417,3 @@ Room.prototype.log = function(message) {
 Room.prototype.logError = function(message) {
     Logger.logError('[' + this.name + "] " + message);
 };
-
-var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
-for (var i in methods) {
-    Profiler._.wrap('Room', Room, methods[i]);
-    Logger._.wrap('Room', Room, methods[i]);
-}

@@ -5,6 +5,15 @@ let Profiler = require('Profiler');
 
 let CTask = require('CTask');
 
+module.exports = function () {
+    var methods = ['fillStructure', 'taskDisassign', 'taskUpgrade'];
+    for (var i in methods) {
+        Profiler._.wrap('Creep', Creep, methods[i]);
+        Logger._.wrap('Creep', Creep, methods[i]);
+    }
+}
+
+
 /**
  * add getter and setter for memory
  */
@@ -438,10 +447,3 @@ Creep.prototype.taskMove = function() {
         this.taskDisassign();
     }
 };
-
-
-var methods = ['fillStructure', 'taskDisassign', 'taskUpgrade'];
-for (var i in methods) {
-    Profiler._.wrap('Creep', Creep, methods[i]);
-    Logger._.wrap('Creep', Creep, methods[i]);
-}

@@ -1,5 +1,8 @@
 "use strict";
 
+module.exports = function () {
+}
+
 Structure.prototype.isFull = function() {
     return this.energy >= this.energyCapacity;
 };

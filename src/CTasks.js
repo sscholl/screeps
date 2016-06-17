@@ -6,6 +6,33 @@ let CTask = require('CTask');
 
 let CTasks = class CTasks {
 
+    /**
+     * Init the class
+     * @return {CTasks}
+     */
+    static init () {
+        if (CTasks._init !== true) {
+           CTasks._init = true;
+
+           var methods = [];
+           for (var i in methods) {
+               Profiler._.wrap('CTasks', CTasks, methods[i]);
+               Logger._.wrap('CTasks', CTasks, methods[i]);
+           }
+        }
+    }
+
+    /**
+     * Creates an instance of CTasks.
+     *
+     * @constructor
+     * @this {CTasks}
+     */
+    constructor (room) {
+        Tasks.init();
+        this.room = room;
+    }
+
     get room () { return this._room; }
     set room (room) { this._room = room; }
 
@@ -38,16 +65,6 @@ let CTasks = class CTasks {
     }
     set collection (collection) {
         this.memory.collection = collection;
-    }
-
-    /**
-     * Creates an instance of CTasks.
-     *
-     * @constructor
-     * @this {CTasks}
-     */
-    constructor (room) {
-        this.room = room;
     }
 
     getList () {

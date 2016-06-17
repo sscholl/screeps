@@ -6,6 +6,14 @@ let Logger = require('Logger');
 let CTask = require('CTask');
 let CTasks = require('CTasks');
 
+module.exports = function () {
+    var methods = ['initTasksStatic', 'initTasksDynamic', 'initTasksDynamic2', 'assignTasks'];
+    for (var i in methods) {
+        Profiler._.wrap('Room', Room, methods[i]);
+        Logger._.wrap('Room', Room, methods[i]);
+    }
+}
+
 // ########### Room Tasks ############################################
 Room.prototype.getTasks = function() {
     if ( !(this._tasks instanceof CTasks) ) {
@@ -190,10 +198,4 @@ Room.prototype.assignTasks = function(withHandshake) {
             Logger.logError('task ' + taskList[i] + ' not found during assignTasks.');
         }
     }
-}
-
-var methods = ['initTasksStatic', 'initTasksDynamic', 'initTasksDynamic2', 'assignTasks'];
-for (var i in methods) {
-    Profiler._.wrap('Room', Room, methods[i]);
-    Logger._.wrap('Room', Room, methods[i]);
 }

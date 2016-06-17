@@ -1,5 +1,8 @@
 "use strict";
 
+module.exports = function () {
+}
+
 Map.prototype.getMemory = function () {
 	if ( this.memory === undefined ) {
 		if ( Memory.map === undefined ) Memory.map = {};

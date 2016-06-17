@@ -5,8 +5,20 @@ let Logger = require('Logger');
 
 var CTask = class CTask {
 
-    get multiTask () {
-        return {'BODY_DEFAULT': false, 'BODY_HARVESTER': true, 'BODY_CARRIER': false, 'BODY_CARRIER_TINY': true, 'BODY_UPGRADER': true, } ;
+    /**
+     * Init the class
+     * @return {CTask}
+     */
+    static init () {
+        if (CTask._init !== true) {
+           CTask._init = true;
+
+           var methods = ['assignmentSearch'];
+           for (var i in methods) {
+               Profiler._.wrap('CTask', CTask, methods[i]);
+               Logger._.wrap('CTask', CTask, methods[i]);
+           }
+        }
     }
 
     /**
@@ -23,6 +35,7 @@ var CTask = class CTask {
      * @this {CTasks}
      */
     constructor (type, targetId, pos, qty, cnt) {
+        CTask.init();
         this.type           = type;
         this.targetId       = targetId;
         this.pos            = pos;
@@ -72,6 +85,10 @@ var CTask = class CTask {
                 this.logError('task type ' + type + ' not available.');
                 return;
         }
+    }
+
+    get multiTask () {
+        return {'BODY_DEFAULT': false, 'BODY_HARVESTER': true, 'BODY_CARRIER': false, 'BODY_CARRIER_TINY': true, 'BODY_UPGRADER': true, } ;
     }
 
     getType () {
@@ -327,9 +344,3 @@ var CTask = class CTask {
 };
 
 module.exports = CTask;
-
-var methods = ['assignmentSearch'];
-for (var i in methods) {
-    Profiler._.wrap('CTask', CTask, methods[i]);
-    Logger._.wrap('CTask', CTask, methods[i]);
-}

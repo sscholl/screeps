@@ -3,6 +3,14 @@
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
+module.exports = function () {
+    var methods = ['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
+    for (var i in methods) {
+        Profiler._.wrap('Spawn', Spawn, methods[i]);
+        Logger._.wrap('Spawn', Spawn, methods[i]);
+    }
+}
+
 Spawn.prototype.spawn = function(body, bodyParts) {
     var result = this.createCreep(bodyParts);
     if(_.isString(result)) {
@@ -190,10 +198,4 @@ Spawn.prototype.spawnRanger = function() {
         this.room.logError("can't create ranger");
     }
     this.spawn('BODY_RANGER', bodyParts);
-}
-
-var methods = ['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
-for (var i in methods) {
-    Profiler._.wrap('Spawn', Spawn, methods[i]);
-    Logger._.wrap('Spawn', Spawn, methods[i]);
 }

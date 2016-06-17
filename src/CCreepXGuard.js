@@ -1,5 +1,8 @@
 "use strict";
 
+module.exports = function () {
+}
+
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.runRanger = function() {

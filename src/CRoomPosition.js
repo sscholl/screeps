@@ -3,6 +3,15 @@
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
+module.exports = function () {
+    var methods = ['getSpotsCnt', 'getInRangePositions'];
+    for (var i in methods) {
+        Profiler._.wrap('RoomPosition', RoomPosition, methods[i]);
+        Logger._.wrap('RoomPosition', RoomPosition, methods[i]);
+    }
+}
+
+
 // ######## RoomPosition ##############################################
 RoomPosition.prototype.getRoom = function() {
     return Game.rooms[this.roomName];
@@ -150,10 +159,3 @@ RoomPosition.prototype.findClosestCreepFull = function (_bodyType) {
                 }
     });
 };
-
-
-var methods = ['getSpotsCnt', 'getInRangePositions'];
-for (var i in methods) {
-    Profiler._.wrap('RoomPosition', RoomPosition, methods[i]);
-    Logger._.wrap('RoomPosition', RoomPosition, methods[i]);
-}
