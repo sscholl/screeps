@@ -4,10 +4,13 @@ let Profiler = require('Profiler');
 let Logger = require('Logger');
 
 module.exports = function () {
-    var methods = ['getSpotsCnt', 'getInRangePositions'];
-    for (var i in methods) {
-        Profiler._.wrap('RoomPosition', RoomPosition, methods[i]);
-        Logger._.wrap('RoomPosition', RoomPosition, methods[i]);
+    if ( RoomPosition._initDebug !== true ) {
+        RoomPosition._initDebug = true;
+        var methods = ['getSpotsCnt', 'getInRangePositions'];
+        for (var i in methods) {
+            Profiler._.wrap('RoomPosition', RoomPosition, methods[i]);
+            Logger._.wrap('RoomPosition', RoomPosition, methods[i]);
+        }
     }
 }
 

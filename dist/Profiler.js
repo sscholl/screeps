@@ -9,8 +9,10 @@ var Profiler = class Profiler {
      * @return {Profiler}
      */
     static get _ () {
-       if (Profiler._singleton === undefined)
+       if (Profiler._singleton === undefined) {
             Profiler._ = new Profiler();
+            Logger._.wrap('Profiler', Profiler, 'report');
+        }
        return Profiler._singleton;
     }
 
@@ -28,31 +30,33 @@ var Profiler = class Profiler {
      * @this {Profiler}
      */
     constructor () {
-        this.ACTIVE = true;
-        this.MODULES = {
-            ROOM:           true,
+        Profiler.ACTIVE = true;
+        Profiler.MODULES = {
+            ROOM:          true,
             ROOMPOSITION:   true,
         };
-        this.REPORT_INTERVALL = 1000;
+        Profiler.REPORT_INTERVALL = 1000;
+        Profiler.REPORT_EMAIL = true;
     }
 
     /**
      * Apply the wrapper functions to classes to measure timings
      */
     init () {
-        if (this.ACTIVE) {
+        if (Profiler.ACTIVE && this._init !== true) {
+            this._init = true;
             Memory.timer = Memory.timer || {};
             var methods = [];
-            if (this.MODULES.ROOM) {
+            if (Profiler.MODULES.ROOM) {
                 methods = Object.getOwnPropertyNames(Room.prototype).filter(function (p) {
-                    return typeof Room.prototype[p] === 'function' && p != 'constructor' && p != 'toString' && p != 'toJSON';
+                    return typeof Room.prototype[p] === 'function' && p !== 'constructor' && p !== 'toString' && p !== 'toJSON';
                 });
                 //console.log('adding methods: ' + JSON.stringify(methods));
                 for (var i in methods) this.wrap('Room', Room, methods[i]);
             }
-            if (this.MODULES.ROOMPOSITION) {
+            if (Profiler.MODULES.ROOMPOSITION) {
                 methods = Object.getOwnPropertyNames(RoomPosition.prototype).filter(function (p) {
-                    return typeof RoomPosition.prototype[p] === 'function' && p != 'constructor' && p != 'toString' && p != 'toJSON';
+                    return typeof RoomPosition.prototype[p] === 'function' && p !== 'constructor' && p !== 'toString' && p !== 'toJSON';
                 });
                 //console.log('adding methods: ' + JSON.stringify(methods));
                 for (var i in methods) this.wrap('RoomPosition', RoomPosition, methods[i]);
@@ -62,13 +66,21 @@ var Profiler = class Profiler {
     }
 
     /**
+     *
+     */
+    finalize () {
+        if (Profiler.ACTIVE && Game.time % Profiler.REPORT_INTERVALL === 0 && false)
+            this.report();
+    }
+
+    /**
      * wrap function of class c
      * @param {String} class name
      * @param {Object} class object
      * @param {String} method name
      */
     wrap (className, c, method) {
-        if (this.ACTIVE) {
+        if (Profiler.ACTIVE) {
             var timer = Memory.timer[className + '.' + method] || { usage: 0, count: 0 , average: null , percentage: null };
             Memory.timer[className + '.' + method] = timer;
 
@@ -88,7 +100,7 @@ var Profiler = class Profiler {
      * report the measured data to console and email
      */
     report () {
-        if (this.ACTIVE && Game.time % this.REPORT_INTERVALL === 0) {
+        if (Profiler.ACTIVE) {
             var sum = 0;
             for (var n in Memory.timer) {
                 var timer = Memory.timer[n];
@@ -100,20 +112,18 @@ var Profiler = class Profiler {
                 sum += timer.average;
             }
             var msg;
+            var msgMail;
             for (var n in Memory.timer) {
                 var timer = Memory.timer[n];
                 timer.percentage = timer.average * 100 / sum;
                 msg = n + ': ' + timer.usage.toFixed(2) + ' s / ' + timer.count + ' = ' + timer.average.toFixed(2) + ' s ' + ' (' + timer.percentage.toFixed(2) + '%)';
+                msgMail += msg;
                 Logger.log(msg);
-                Game.notify(msg, 1);
             }
-            Logger.log(msg);
-            Game.notify(msg, 1);
+            Game.notify(msgMail, 1);
         }
     }
 
 };
 
 module.exports = Profiler;
-
-Logger._.wrap('Profiler', Profiler, 'report');

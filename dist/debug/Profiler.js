@@ -15,7 +15,10 @@ var Profiler = (function () {
          * @return {Profiler}
          */
         get: function get() {
-            if (Profiler._singleton === undefined) Profiler._ = new Profiler();
+            if (Profiler._singleton === undefined) {
+                Profiler._ = new Profiler();
+                Logger._.wrap('Profiler', Profiler, 'report');
+            }
             return Profiler._singleton;
         },
 
@@ -37,12 +40,13 @@ var Profiler = (function () {
     function Profiler() {
         _classCallCheck(this, Profiler);
 
-        this.ACTIVE = true;
-        this.MODULES = {
+        Profiler.ACTIVE = true;
+        Profiler.MODULES = {
             ROOM: true,
             ROOMPOSITION: true
         };
-        this.REPORT_INTERVALL = 1000;
+        Profiler.REPORT_INTERVALL = 1000;
+        Profiler.REPORT_EMAIL = true;
     }
 
     /**
@@ -52,17 +56,17 @@ var Profiler = (function () {
     _createClass(Profiler, [{
         key: 'init',
         value: function init() {
-            if (this.ACTIVE) {
+            if (Profiler.ACTIVE) {
                 Memory.timer = Memory.timer || {};
                 var methods = [];
-                if (this.MODULES.ROOM) {
+                if (Profiler.MODULES.ROOM) {
                     methods = Object.getOwnPropertyNames(Room.prototype).filter(function (p) {
                         return typeof Room.prototype[p] === 'function' && p != 'constructor' && p != 'toString' && p != 'toJSON';
                     });
                     //console.log('adding methods: ' + JSON.stringify(methods));
                     for (var i in methods) this.wrap('Room', Room, methods[i]);
                 }
-                if (this.MODULES.ROOMPOSITION) {
+                if (Profiler.MODULES.ROOMPOSITION) {
                     methods = Object.getOwnPropertyNames(RoomPosition.prototype).filter(function (p) {
                         return typeof RoomPosition.prototype[p] === 'function' && p != 'constructor' && p != 'toString' && p != 'toJSON';
                     });
@@ -70,6 +74,15 @@ var Profiler = (function () {
                     for (var i in methods) this.wrap('RoomPosition', RoomPosition, methods[i]);
                 }
             }
+        }
+
+        /**
+         *
+         */
+    }, {
+        key: 'finalize',
+        value: function finalize() {
+            if (Profiler.ACTIVE && Game.time % Profiler.REPORT_INTERVALL === 0 && false) this.report();
         }
 
         /**
@@ -81,7 +94,7 @@ var Profiler = (function () {
     }, {
         key: 'wrap',
         value: function wrap(className, c, method) {
-            if (this.ACTIVE) {
+            if (Profiler.ACTIVE) {
                 var timer = Memory.timer[className + '.' + method] || { usage: 0, count: 0, average: null, percentage: null };
                 Memory.timer[className + '.' + method] = timer;
 
@@ -103,7 +116,7 @@ var Profiler = (function () {
     }, {
         key: 'report',
         value: function report() {
-            if (this.ACTIVE && Game.time % this.REPORT_INTERVALL === 0) {
+            if (Profiler.ACTIVE) {
                 var sum = 0;
                 for (var n in Memory.timer) {
                     var timer = Memory.timer[n];
@@ -115,15 +128,15 @@ var Profiler = (function () {
                     sum += timer.average;
                 }
                 var msg;
+                var msgMail;
                 for (var n in Memory.timer) {
                     var timer = Memory.timer[n];
                     timer.percentage = timer.average * 100 / sum;
                     msg = n + ': ' + timer.usage.toFixed(2) + ' s / ' + timer.count + ' = ' + timer.average.toFixed(2) + ' s ' + ' (' + timer.percentage.toFixed(2) + '%)';
+                    msgMail += msg;
                     Logger.log(msg);
-                    Game.notify(msg, 1);
                 }
-                Logger.log(msg);
-                Game.notify(msg, 1);
+                Game.notify(msgMail, 1);
             }
         }
     }]);
@@ -132,5 +145,3 @@ var Profiler = (function () {
 })();
 
 module.exports = Profiler;
-
-Logger._.wrap('Profiler', Profiler, 'report');

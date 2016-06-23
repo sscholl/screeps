@@ -3,7 +3,7 @@
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
-var CTask = class CTask {
+class CTask {
 
     /**
      * Init the class
@@ -110,7 +110,8 @@ var CTask = class CTask {
      * @return {Room}
      */
     getRoom () {
-        return Game.rooms[this.pos.roomName];
+        if (this.getPos().roomName) return Game.rooms[this.getPos().roomName];
+        else                        return undefined;
     }
 
     /**
@@ -173,7 +174,7 @@ var CTask = class CTask {
             if (this.getTarget() instanceof Creep)
                 this.code = this.type + "_" + this.getTarget().name;
             else
-                this.code = this.type + "_" + this.pos.x + "_" + this.pos.y;
+                this.code = this.type + "_" + this.getPos().x + "_" + this.getPos().y;
         }
         return this.code;
     }

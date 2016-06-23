@@ -16,9 +16,6 @@ Structure.prototype.needsRepair = function(name) {
 };
 
 Structure.prototype.getEnergyPercentage = function(name) {
-    console.log(this.store);
-        console.log(this.store.energy / this.storeCapacity);
-    console.log(this.energy / this.energyCapacity);
     if (this.store)
         return this.store.energy / this.storeCapacity;
     else

@@ -6,10 +6,13 @@ let Profiler = require('Profiler');
 let CTask = require('CTask');
 
 module.exports = function () {
-    var methods = ['fillStructure', 'taskDisassign', 'taskUpgrade'];
-    for (var i in methods) {
-        Profiler._.wrap('Creep', Creep, methods[i]);
-        Logger._.wrap('Creep', Creep, methods[i]);
+    if ( Creep._initDebug !== true ) {
+        Creep._initDebug = true;
+        var methods = ['fillStructure', 'taskDisassign', 'taskUpgrade'];
+        for (var i in methods) {
+            Profiler._.wrap('Creep', Creep, methods[i]);
+            Logger._.wrap('Creep', Creep, methods[i]);
+        }
     }
 }
 
@@ -115,6 +118,14 @@ Creep.prototype.moveAround = function() {
 Creep.prototype.moveRandom = function() {
     this.move(Math.floor(Math.random() * 8) % 8 + 1);
 }
+
+Creep.prototype.flee = function(range) {
+    let enemies = this.room.find(FIND_HOSTILE_CREEPS);
+    //console.log(this,'fleeing')
+    let avoid = _.map(enemies,function(t) {return {'pos':t.pos,'range':range};});
+    let res = PathFinder.search(this.pos,avoid,{flee:true,plainCost:2,swampCost:10,maxOps:2500*2});
+    this.moveTo(res.path[0]);
+};
 
 // ########### ENERGY SECTION ###########################################
 

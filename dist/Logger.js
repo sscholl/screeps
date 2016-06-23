@@ -26,27 +26,29 @@ var Logger = class Logger {
      * @this {Logger}
      */
     constructor () {
-        this.ACTIVE = true;
-        this.MODULES = {
-            ROOM:           false,
+        Logger.ACTIVE = true;
+        Logger.MODULES = {
+            ROOM:          false,
             ROOMPOSITION:   false,
         };
-        this.REPORT_INTERVALL = 1000;
-        if (Logger.level === undefined) Logger.level = 0;
+
         Logger.indentation = ["", "  ", "    ", "      ", "        ", "          ", "            ", "              ", "                ", "                ", "                  ", "                    ", "                      ", "                        ", "                          ", "                            ", "                              ", "                                ", "                                  ", "                                    ", "                                      ", "                                        "];
+
+        Logger.level = 0;
     }
 
     /**
      * Apply the wrapper to selected functions
      */
     init () {
-        if (this.ACTIVE) {
+        if (Logger.ACTIVE && this._init !== true) {
+            this._init = true;
             var methods = [];
-            if (this.MODULES.ROOM) {
+            if (Logger.MODULES.ROOM) {
                 this.wrap('Room', Room, 'find');
                 this.wrap('Room', Room, 'findPath');
             }
-            if (this.MODULES.ROOMPOSITION) {
+            if (Logger.MODULES.ROOMPOSITION) {
                 this.wrap('RoomPosition', RoomPosition, 'findPathTo');
                 this.wrap('RoomPosition', RoomPosition, 'findClosestByPath');
             }
@@ -60,7 +62,7 @@ var Logger = class Logger {
      * @param {String} method name
      */
     wrap (LoggerName, c, method) {
-        if (this.ACTIVE) {
+        if (Logger.ACTIVE) {
             var f = c.prototype[method];
             c.prototype[method] = function() {
                 Logger.functionEnter(LoggerName + '.' + method);

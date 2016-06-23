@@ -4,10 +4,13 @@ let Profiler = require('Profiler');
 let Logger = require('Logger');
 
 module.exports = function () {
-    var methods = ['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
-    for (var i in methods) {
-        Profiler._.wrap('Spawn', Spawn, methods[i]);
-        Logger._.wrap('Spawn', Spawn, methods[i]);
+    if ( Spawn._initDebug !== true ) {
+        Spawn._initDebug = true;
+        var methods = ['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
+        for (var i in methods) {
+            Profiler._.wrap('Spawn', Spawn, methods[i]);
+            Logger._.wrap('Spawn', Spawn, methods[i]);
+        }
     }
 }
 
@@ -50,15 +53,15 @@ Spawn.prototype.spawnDefault = function() {
 
 Spawn.prototype.spawnHarvester = function() {
     var bodyParts;
-    if ( this.room.hasEnergyCapacity(800) ) {
+    if ( this.room.hasEnergy(800) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE ];
-    } else if ( this.room.hasEnergyCapacity(600) ) {
+    } else if ( this.room.hasEnergy(600) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
-    } else if ( this.room.hasEnergyCapacity(550) ) {
+    } else if ( this.room.hasEnergy(550) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
-    } else if ( this.room.hasEnergyCapacity(450) ) {
+    } else if ( this.room.hasEnergy(450) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, MOVE ];
-    } else if ( this.room.hasEnergyCapacity(350) ) {
+    } else if ( this.room.hasEnergy(350) ) {
         bodyParts = [ WORK, WORK, WORK, MOVE ];
     } else if ( this.room.hasEnergy(250) ) {
         bodyParts = [ WORK, WORK, MOVE ];
@@ -122,13 +125,13 @@ Spawn.prototype.spawnCarrier = function() {
             CARRY, MOVE  //100
         ];
     else */
-    if (this.room.extensions.length >= 10)
+    if ( this.room.hasEnergy(800) )
         bodyParts = [
             CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
             CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
             CARRY, MOVE, CARRY, MOVE  //200
         ];
-    else if (this.room.extensions.length >= 5)
+    else if ( this.room.hasEnergy(500) )
         bodyParts = [
             CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
             CARRY, MOVE, CARRY, MOVE  //200

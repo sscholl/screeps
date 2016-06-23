@@ -4,7 +4,7 @@ let Logger = require('Logger');
 
 let CTask = require('CTask');
 
-let CTasks = class CTasks {
+class CTasks {
 
     /**
      * Init the class
@@ -29,7 +29,7 @@ let CTasks = class CTasks {
      * @this {CTasks}
      */
     constructor (room) {
-        Tasks.init();
+        CTasks.init();
         this.room = room;
     }
 

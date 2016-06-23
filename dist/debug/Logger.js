@@ -35,14 +35,15 @@ var Logger = (function () {
     function Logger() {
         _classCallCheck(this, Logger);
 
-        this.ACTIVE = true;
-        this.MODULES = {
+        Logger.ACTIVE = true;
+        Logger.MODULES = {
             ROOM: false,
             ROOMPOSITION: false
         };
-        this.REPORT_INTERVALL = 1000;
-        if (Logger.level === undefined) Logger.level = 0;
+
         Logger.indentation = ["", "  ", "    ", "      ", "        ", "          ", "            ", "              ", "                ", "                ", "                  ", "                    ", "                      ", "                        ", "                          ", "                            ", "                              ", "                                ", "                                  ", "                                    ", "                                      ", "                                        "];
+
+        Logger.level = 0;
     }
 
     /**
@@ -52,13 +53,13 @@ var Logger = (function () {
     _createClass(Logger, [{
         key: "init",
         value: function init() {
-            if (this.ACTIVE) {
+            if (Logger.ACTIVE) {
                 var methods = [];
-                if (this.MODULES.ROOM) {
+                if (Logger.MODULES.ROOM) {
                     this.wrap('Room', Room, 'find');
                     this.wrap('Room', Room, 'findPath');
                 }
-                if (this.MODULES.ROOMPOSITION) {
+                if (Logger.MODULES.ROOMPOSITION) {
                     this.wrap('RoomPosition', RoomPosition, 'findPathTo');
                     this.wrap('RoomPosition', RoomPosition, 'findClosestByPath');
                 }
@@ -74,7 +75,7 @@ var Logger = (function () {
     }, {
         key: "wrap",
         value: function wrap(LoggerName, c, method) {
-            if (this.ACTIVE) {
+            if (Logger.ACTIVE) {
                 var f = c.prototype[method];
                 c.prototype[method] = function () {
                     Logger.functionEnter(LoggerName + '.' + method);

@@ -4,10 +4,13 @@ let Profiler = require('Profiler');
 let Logger = require('Logger');
 
 module.exports = function () {
-    var methods = ['runHealer'];
-    for (var i in methods) {
-        Profiler._.wrap('Creep', Creep, methods[i]);
-        Logger._.wrap('Creep', Creep, methods[i]);
+    if ( Creep._initDebugHealer !== true ) {
+        Creep._initDebugHealer = true;
+        var methods = ['runHealer'];
+        for (var i in methods) {
+            Profiler._.wrap('Creep', Creep, methods[i]);
+            Logger._.wrap('Creep', Creep, methods[i]);
+        }
     }
 }
 

@@ -12,12 +12,10 @@ Map.prototype.getMemory = function () {
 };
 
 Map.prototype.getExits = function () {
-	if ( this.getMemory().exits === undefined ) this.memory.exits = {};
-	return this.getMemory().exits;
-};
-
-Map.prototype.getExit = function () {
-	if ( this.getMemory().exits === undefined ) this.memory.exits = {};
+	if ( this.getMemory().exits === undefined ) {
+		this.memory.exits = {};
+		this.memory.exits
+	}
 	return this.getMemory().exits;
 };
 

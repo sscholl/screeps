@@ -7,10 +7,13 @@ let CTask = require('CTask');
 let CTasks = require('CTasks');
 
 module.exports = function () {
-    var methods = ['initTasksStatic', 'initTasksDynamic', 'initTasksDynamic2', 'assignTasks'];
-    for (var i in methods) {
-        Profiler._.wrap('Room', Room, methods[i]);
-        Logger._.wrap('Room', Room, methods[i]);
+    if ( Room._initDebugTasks !== true ) {
+        Room._initDebugTasks = true;
+        var methods = ['initTasksStatic', 'initTasksDynamic', 'initTasksDynamic2', 'assignTasks'];
+        for (var i in methods) {
+            Profiler._.wrap('Room', Room, methods[i]);
+            Logger._.wrap('Room', Room, methods[i]);
+        }
     }
 }
 

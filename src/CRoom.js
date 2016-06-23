@@ -3,15 +3,80 @@
 let Profiler = require('Profiler');
 let Logger = require('Logger');
 
+let ConstructionManager = require('ConstructionManager');
 let CTask = require('CTask');
 
 module.exports = function () {
-    var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
-    for (var i in methods) {
-        Profiler._.wrap('Room', Room, methods[i]);
-        Logger._.wrap('Room', Room, methods[i]);
+    if ( Room._initDebug !== true ) {
+        Room._initDebug = true;
+        var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
+        for (var i in methods) {
+            Profiler._.wrap('Room', Room, methods[i]);
+            Logger._.wrap('Room', Room, methods[i]);
+        }
     }
 }
+
+Room.EXITS = [FIND_EXIT_TOP, FIND_EXIT_BOTTOM, FIND_EXIT_LEFT, FIND_EXIT_RIGHT];
+
+/**
+ * add getter and setter for memory
+ */
+Object.defineProperty(Room.prototype, "constructionManager", {
+    get: function () {
+        if (this._constructionManager === undefined) {
+            this._constructionManager = ConstructionManager.getInstance(this);
+        }
+        return this._constructionManager;
+    },
+    set: function (v) {
+        this._constructionManager = v;
+    },
+});
+
+/**
+ * add getter and setter for memory
+ */
+Object.defineProperty(Room.prototype, "centerPos", {
+    get: function () {
+        if (this._centerPos === undefined) {
+            //if (this.memory.centerPos === undefined) {
+                if (this.spawns && this.spawns[0] instanceof StructureSpawn) this._centerPos = this.spawns[0].pos;
+                else if (this.controller)   this._centerPos = this.controller.pos;       //TODO: change to spawn loc
+                else                        this._centerPos = this.getPositionAt(24,24); //TODO: check if wall exists
+            //}
+            //this._centerPos = this.memory.centerPos;
+            //this._centerPos.__proto__ = RoomPosition.prototype;
+        }
+        return this._centerPos;
+    }
+});
+
+/**
+ * add getter and setter for memory
+ */
+Object.defineProperty(Room.prototype, "exits", {
+    get: function () {
+        if (this._exits === undefined) {
+            if (this.memory.exits === undefined) {
+                this.memory.exits = {};
+                for (var i of Room.EXITS) {
+                    var closest = this.centerPos.findClosestByPath(i);
+                    if (closest)
+                        this.memory.exits[i] = closest;
+                }
+            }
+            this._exits = this.memory.exits;
+            for (var i in this._exits)
+                this._exits[i].__proto__ = RoomPosition.prototype;
+        }
+        return this._exits;
+    },
+    set: function (v) {
+        delete this._exits;
+        this.memory.exits = v;
+    },
+});
 
 // ######### Room #############################################################
 
@@ -33,6 +98,8 @@ Room.prototype.run = function() {
     this.loadStructures();
     this.loadConstructions();
     this.energy = this.findDroppedEnergy();
+
+    //this.constructionManager.run();
 
     if (this.memory.timer % 1 === 0) {
         this.initDynamicSources();
@@ -75,9 +142,9 @@ Room.prototype.loadSources = function() {
     }
 
     this.hostileSpawns = [];
-    for (var hostileSpawnNr in this.memory.hostileSpawns) {
-        var hostileSpawnId = this.memory.hostileSpawns[hostileSpawnNr].id;
-        this.hostileSpawns[hostileSpawnNr] = Game.getObjectById(hostileSpawnId);
+    for (var i in this.memory.hostileSpawns) {
+        var i = this.memory.hostileSpawns[i].id;
+        this.hostileSpawns[i] = Game.getObjectById(hostileSpawnId);
     }
 };
 Room.prototype.initDynamicSources = function() {
@@ -121,18 +188,19 @@ Room.prototype.initDynamicStructures = function() {
         }
     }
 
-    if ( this.storage instanceof StructureStorage && this.controller.pos.inRangeTo(this.storage, 4) ) {
-        this.memory.controllerRefillId = this.storage.id;
-    } else {
-        var containers = this.controller.pos.findInRange( FIND_STRUCTURES, 4, {filter: {structureType: STRUCTURE_CONTAINER}} );
-        if (containers.length > 0 && containers[0] instanceof StructureContainer) {
-            this.memory.controllerRefillId = containers[0].id;
+    if ( this.controller instanceof StructureController )
+        if ( this.storage instanceof StructureStorage && this.controller.pos.inRangeTo(this.storage, 4) ) {
+            this.memory.controllerRefillId = this.storage.id;
         } else {
-            var spawns = this.controller.pos.findInRange( FIND_MY_STRUCTURES, 4, {filter: {structureType: STRUCTURE_SPAWN}} );
-            if (spawns.length > 0 && spawns[0] instanceof StructureSpawn)
-                this.memory.controllerRefillId = spawns[0].id;
+            var containers = this.controller.pos.findInRange( FIND_STRUCTURES, 4, {filter: {structureType: STRUCTURE_CONTAINER}} );
+            if (containers.length > 0 && containers[0] instanceof StructureContainer) {
+                this.memory.controllerRefillId = containers[0].id;
+            } else {
+                var spawns = this.controller.pos.findInRange( FIND_MY_STRUCTURES, 4, {filter: {structureType: STRUCTURE_SPAWN}} );
+                if (spawns.length > 0 && spawns[0] instanceof StructureSpawn)
+                    this.memory.controllerRefillId = spawns[0].id;
+            }
         }
-    }
 
     if (this.getStorage() instanceof Structure) {
         var links = this.getStorage().pos.findInRangeLink(2);
@@ -272,7 +340,7 @@ Room.prototype.creepsCarrierCnt = function() {
         if ( task instanceof CTask ) {
             var source = task.getTarget();
             if ( source instanceof Source) {
-                cnt += source.getMemory().linkId ? 1 : 2;
+                cnt += source.getMemory().linkId ? 2 : 2;
             }
         }
     }
@@ -310,9 +378,7 @@ Room.prototype.spawnAction = function() {
             spawn.spawnHarvester();
         } else if (this.creepsDefault.length < this.creepsRequired()) {
             spawn.spawnDefault();
-        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt() ) {
-            spawn.spawnUpgrader();
-        } else if ( this.controller instanceof StructureStorage
+        } else if ( this.controllerRefill instanceof StructureStorage
             && this.storageLink instanceof StructureLink
             && this.creepsCarrierTiny.length < this.creepsCarrierTinyCnt()
         ) {
@@ -329,7 +395,7 @@ Room.prototype.spawnAction = function() {
             && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
-        } else if ( this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 8 ) { // spawn another upgrader, because has to many energy
+        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt() || (this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 5) ) { // spawn another upgrader, because has to many energy
             spawn.spawnUpgrader();
         } else {
             this.log('SPAWN: no creep is required');

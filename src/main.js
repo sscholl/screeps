@@ -9,6 +9,11 @@ let CTask               = require('CTask');
 let CTasks              = require('CTasks');
 
 
+// before requires of prototype extensions
+Profiler._.init();
+Logger._.init();
+
+
 var includes = ['CMap', 'CSpawn', 'CStructure', 'CSource', 'CRoomPosition', 'CCreep', 'CCreepXGuard', 'CCreepXHealer', 'CRoom_Tasks', 'CRoom'];
 var modules = [];
 for (var i in includes) {
@@ -21,16 +26,13 @@ module.exports.loop = function () {
     if (Game.cpu.tickLimit < 500) {
         for(var creepName in Game.creeps) {
             var creep = Game.creeps[creepName];
-            if (creep.bodyType === 'BODY_HARVESTER') creep.run();
+            if (creep.bodyType === 'BODY_HARVESTER' || creep.bodyType === 'BODY_RANGER' || creep.bodyType === 'BODY_HEALER') creep.run();
         }
-        Logger.log("Execution of loop is not possible, because tick limit is " + Game.cpu.tickLimit + "<500");
+        console.log("Execution of loop is not possible, because tick limit is " + Game.cpu.tickLimit + "<500");
         return;
     }
 
     for (var i in modules) modules[i]();
-
-    Profiler._.init();
-    Logger._.init();
 
     var time = Game.cpu.getUsed();
     Logger.functionEnter("LOAD TIME " + time);
@@ -50,7 +52,7 @@ module.exports.loop = function () {
         creep.run();
     }
 
-    Profiler._.report();
+    Profiler._.finalize();
 
     Logger.functionExit("MAIN TIME ", Game.cpu.getUsed() - time);
 }
