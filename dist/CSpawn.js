@@ -59,11 +59,11 @@ Spawn.prototype.spawnHarvester = function() {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
     } else if ( this.room.hasEnergy(550) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, MOVE ];
-    } else if ( this.room.hasEnergy(450) ) {
+    } else if ( this.room.hasEnergyCapacity(450) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, MOVE ];
-    } else if ( this.room.hasEnergy(350) ) {
+    } else if ( this.room.hasEnergyCapacity(350) ) {
         bodyParts = [ WORK, WORK, WORK, MOVE ];
-    } else if ( this.room.hasEnergy(250) ) {
+    } else if ( this.room.hasEnergyCapacity(250) ) {
         bodyParts = [ WORK, WORK, MOVE ];
     } else {
         this.room.log("can't create harvester - not enough energy");
@@ -75,6 +75,38 @@ Spawn.prototype.spawnHarvester = function() {
     if ( r === ERR_NOT_ENOUGH_ENERGY ) {
         this.room.log("can't create harvester - not enough energy");
     }
+}
+
+Spawn.prototype.spawnCarrier = function() {
+    var bodyParts;
+    /*if (this.room.extensions.length >= 20)
+        bodyParts = [
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE  //100
+        ];
+    else */
+    if ( this.room.hasEnergyCapacity(800) )
+        bodyParts = [
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE  //200
+        ];
+    else if ( this.room.hasEnergyCapacity(500) )
+        bodyParts = [
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE  //200
+        ];
+    else
+        bodyParts = [ CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];  //300
+    this.spawn('BODY_CARRIER', bodyParts);
+}
+
+Spawn.prototype.spawnCarrierTiny = function() {
+    var bodyParts = [ CARRY, MOVE ];
+    this.spawn('BODY_CARRIER_TINY', bodyParts);
 }
 
 Spawn.prototype.spawnUpgrader = function() {
@@ -112,38 +144,6 @@ Spawn.prototype.spawnUpgrader = function() {
         this.room.logError("can't create upgrader");
     }
     this.spawn('BODY_UPGRADER', bodyParts);
-}
-
-Spawn.prototype.spawnCarrier = function() {
-    var bodyParts;
-    /*if (this.room.extensions.length >= 20)
-        bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE  //100
-        ];
-    else */
-    if ( this.room.hasEnergy(800) )
-        bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE  //200
-        ];
-    else if ( this.room.hasEnergy(500) )
-        bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE  //200
-        ];
-    else
-        bodyParts = [ CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];  //300
-    this.spawn('BODY_CARRIER', bodyParts);
-}
-
-Spawn.prototype.spawnCarrierTiny = function() {
-    var bodyParts = [ CARRY, MOVE ];
-    this.spawn('BODY_CARRIER_TINY', bodyParts);
 }
 
 Spawn.prototype.spawnHealer = function() {

@@ -89,9 +89,9 @@ Room.prototype.run = function() {
     this.resetFind();
     this.initCreeps();
     if (!this.memory.timer || this.memory.timer % 600 === 0) {
-            this.memory.timer = -1;
-            this.initSources();
-            this.memory.timer = 600;
+        this.memory.timer = -1;
+        this.initSources();
+        this.memory.timer = 600;
     }
 
     this.loadSources();
@@ -109,9 +109,11 @@ Room.prototype.run = function() {
 
     if (this.memory.timer % 600 === 0) {
         this.initTasksStatic();
-    } else if (this.memory.timer % 15 == 0) {
+    }
+    if (this.memory.timer % 15 == 0) {
         this.initTasksDynamic2();
-    } else if (this.memory.timer % 1 == 0) {
+    }
+    if (this.memory.timer % 1 == 0) {
         this.initTasksDynamic();
     }
 
@@ -202,8 +204,8 @@ Room.prototype.initDynamicStructures = function() {
             }
         }
 
-    if (this.getStorage() instanceof Structure) {
-        var links = this.getStorage().pos.findInRangeLink(2);
+    if (this.storage instanceof StructureStorage) {
+        var links = this.storage.pos.findInRangeLink(2);
         if (links[0] !== undefined) this.memory.storageLinkId = links[0].id;
     }
 }
@@ -214,10 +216,10 @@ Room.prototype.loadStructures = function() {
         this.extensions[i] = Game.getObjectById(extensionId);
     }
     if (this.memory.storageLinkId !== undefined) {
-    this.storageLink = Game.getObjectById(this.memory.storageLinkId);
-    if (!this.storageLink instanceof StructureLink) {
-        this.logError("Storage Link with ID " + this.memory.storageLinkId + " does not exist.");
-    }
+        this.storageLink = Game.getObjectById(this.memory.storageLinkId);
+        if (!this.storageLink instanceof StructureLink) {
+            this.logError("Storage Link with ID " + this.memory.storageLinkId + " does not exist.");
+        }
     }
     if (this.memory.controllerRefillId !== undefined) {
         this.controllerRefill = Game.getObjectById(this.memory.controllerRefillId);
@@ -239,19 +241,6 @@ Room.prototype.linkAction = function() {
                 }
             }
         }
-};
-Room.prototype.getStorage = function() {
-    if (this.storage === undefined) {
-        var storages = this.find(FIND_MY_STRUCTURES,
-            {filter: {structureType: STRUCTURE_STORAGE}}
-        );
-        if (storages[0] !== undefined) {
-            this.storage = storages[0];
-        } else {
-            this.storage = false;
-        }
-    }
-    return this.storage;
 };
 // ########### CONSTRUCTION SECTION ###########################################
 Room.prototype.initDynamicConstructions = function() {
@@ -293,11 +282,6 @@ Room.prototype.getDefaultUpgraderCount = function() {
     if ( this.controllerRefill instanceof Structure)    return 0;
     else                                                return 1;
 };
-Room.prototype.getDefaultCarrierCount = function() {
-    /*if (! (this.controllerRefill instanceof Structure)){
-        return 2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
-    } else*/ return 0;
-};
 Room.prototype.getDefaultBuilderCount = function() {
     var cnt = 0;
 //    if (this.constructions.length >= 4) ++ cnt;
@@ -308,7 +292,6 @@ Room.prototype.getDefaultBuilderCount = function() {
 };
 Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount()
-        + this.getDefaultCarrierCount()
         + this.getDefaultUpgraderCount()
         + this.getDefaultBuilderCount(); //harvester, upgrader, @TODO: builder/repairer
 };
@@ -395,7 +378,7 @@ Room.prototype.spawnAction = function() {
             && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
-        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt() || (this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 8) ) { // spawn another upgrader, because has to many energy
+        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt() || (this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 5) ) { // spawn another upgrader, because has to many energy
             spawn.spawnUpgrader();
         } else {
             this.log('SPAWN: no creep is required');

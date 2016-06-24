@@ -121,11 +121,11 @@ class CTasks {
                 var taskA = tasks.collection[taskCodeA];
                 var taskB = tasks.collection[taskCodeB];
                 if (taskA instanceof CTask) a = taskA.getPrio();
-                else {Logger.logError("wrong task " + taskCodeA);
-                    tasks.list.splice(tasks.list.indexOf(taskCodeA), 1);}
+                else { Logger.logError("wrong task " + taskCodeA);
+                    tasks.list.splice(tasks.list.indexOf(taskCodeA), 1); }
                 if (taskB instanceof CTask) b = taskB.getPrio();
-                else {Logger.logError("wrong task " + taskCodeB);
-                    tasks.list.splice(tasks.list.indexOf(taskCodeB), 1);}
+                else { Logger.logError("wrong task " + taskCodeB);
+                    tasks.list.splice(tasks.list.indexOf(taskCodeB), 1); }
                 return b - a;
             }
         );

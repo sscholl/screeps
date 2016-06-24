@@ -68,6 +68,8 @@ class CTask {
             case 'TASK_BUILD':
                 this.bodyTypes = ['BODY_DEFAULT'];
                 this.energySource = false;
+                var refill = this.getRoom().controllerRefill;
+                if (refill instanceof Structure && refill.pos.inRangeTo(this.getTarget().pos, 6)) this.bodyTypes.push('BODY_UPGRADER');
                 break;
             case 'TASK_REPAIR':
                 this.bodyTypes = ['BODY_DEFAULT'];

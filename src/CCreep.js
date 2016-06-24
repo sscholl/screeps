@@ -130,30 +130,32 @@ Creep.prototype.flee = function(range) {
 // ########### ENERGY SECTION ###########################################
 
 Creep.prototype.fillOnStructure = function(structure) {
+    var r = -99;
     if ( structure instanceof StructureSpawn ) {
         this.movePredefined(structure.pos);
         if ( structure.room.isEnergyMax() )
-            structure.transferEnergy(this);
+            r = structure.transferEnergy(this);
     } else if ( structure instanceof StructureLink ) {
         this.movePredefined(structure.pos);
-        structure.transferEnergy(this);
-        this.movePredefined(structure.pos);
-        structure.transfer(this, RESOURCE_ENERGY);
+        r = structure.transferEnergy(this);
     } else if ( structure instanceof StructureStorage || structure instanceof StructureContainer ) {
         this.movePredefined(structure.pos);
-        structure.transfer(this, RESOURCE_ENERGY);
+        r = structure.transfer(this, RESOURCE_ENERGY);
     } else {
         this.logError("structure type " + typeof structure + " is not implemented.");
     }
+    return r;
 }
 
 Creep.prototype.fillStructure = function(structure) {
+    var r = -99;
     if (structure instanceof StructureStorage || structure instanceof StructureLink || structure instanceof StructureSpawn || structure instanceof StructureExtension) {
         this.movePredefined(structure.pos);
-        this.transfer(structure, RESOURCE_ENERGY);
+        r = this.transfer(structure, RESOURCE_ENERGY);
     } else {
         this.logError("this structure is not available");
     }
+    return r;
 }
 
 // ########### LOGGING SECTION ############################################
@@ -355,9 +357,10 @@ Creep.prototype.taskUpgrade = function() {
         return;
     }
     var target = this.getCurrentTask().getTarget();
-    if (target instanceof StructureController) {
+    if ( target instanceof StructureController ) {
         if ( this.bodyType === 'BODY_UPGRADER' && this.carry.energy < 25) {
-            this.fillOnStructure(this.room.controllerRefill);
+            var r = this.fillOnStructure(this.room.controllerRefill);
+            if ( r !== OK && r !== ERR_NOT_IN_RANGE )  this.taskDisassign();
         } else {
             this.movePredefined(target, {}, 3);
         }
@@ -370,17 +373,22 @@ Creep.prototype.taskUpgrade = function() {
 };
 
 Creep.prototype.taskBuild = function() {
-    if (this.carry.energy <= 0) {
+    if ( this.bodyType !== 'BODY_UPGRADER' && this.carry.energy <= 0 ) {
         this.taskDisassign();
         return;
     }
     var target = this.getCurrentTask().getTarget();
     if (target instanceof ConstructionSite) {
-        this.movePredefined(target.pos, {}, 3);
-        var result = this.build(target);
-        if (result !== OK && result !== ERR_NOT_IN_RANGE) {
-            this.logError(this.name + " can't build " + result);
-            if (result === ERR_NO_BODYPART) this.movePredefined(this.room.defaultSpawn.pos);
+        if ( this.bodyType === 'BODY_UPGRADER' && this.carry.energy < 25) {
+            var r = this.fillOnStructure(this.room.controllerRefill);
+            if ( r !== OK && r !== ERR_NOT_IN_RANGE )  this.taskDisassign();
+        } else {
+            this.movePredefined(target, {}, 3);
+        }
+        var r = this.build(target);
+        if (r !== OK && r !== ERR_NOT_IN_RANGE) {
+            this.logError(this.name + " can't build " + r);
+            if (r === ERR_NO_BODYPART) this.movePredefined(this.room.defaultSpawn.pos);
         }
     } else {
         this.logError("target construction site not valid");
@@ -416,12 +424,12 @@ Creep.prototype.taskRepair = function() {
 
 Creep.prototype.taskFillStorage = function() {
     var link = this.getCurrentTask().getTarget();
-    if (link instanceof Structure && this.room.controllerStorage instanceof Structure) {
+    if (link instanceof StructureLink && this.room.storage instanceof StructureStorage) {
         if (this.carry.energy > 0) {
             if (this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity)
                 this.fillStructure(this.room.defaultSpawn)
             else
-                this.fillStructure(this.room.controllerStorage)
+                this.fillStructure(this.room.storage)
         } else {
             if (link.energy <= 0) {
                 if (this.bodyType !== 'BODY_CARRIER_TINY') {
@@ -433,7 +441,7 @@ Creep.prototype.taskFillStorage = function() {
             this.fillOnStructure(link);
         }
     } else {
-        this.logError("link or controllerStorage not valid");
+        this.logError("storageLink or storage not valid");
         this.getCurrentTask().delete();
         this.taskDisassign();
     }

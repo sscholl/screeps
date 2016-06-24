@@ -72,7 +72,11 @@ Room.prototype.initTasksDynamic = function() {
     }
     for (var i in this.energy) {
         var energy = this.energy[i];
-        if(gatherEnergy.indexOf(energy.pos) != -1)
+
+Logger.logDebug(gatherEnergy);
+Logger.logDebug(energy.pos);
+Logger.logDebug(gatherEnergy.indexOf(energy.pos));
+        if(gatherEnergy.indexOf(energy.pos) !== -1)
             this.createTask(
                     'TASK_COLLECT',
                     energy.id,
@@ -121,7 +125,7 @@ Room.prototype.initTasksDynamic = function() {
                     this.storage.pos,
                     this.storage.storeCapacity - this.storage.store.energy
                 );
-                if (this.storageLink instanceof Structure && this.storageLink.energy >= 0)
+                if (this.storageLink instanceof StructureLink)
                     this.createTask(
                         'TASK_FILLSTORAGE',
                         this.storageLink.id,
