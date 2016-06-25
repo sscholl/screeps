@@ -59,12 +59,12 @@ Room.prototype.initTasksDynamic = function() {
         var task = creep.getCurrentTask();
         if ( task instanceof CTask ) {
             var source = task.getTarget();
-            if ( source instanceof Source) {
+            if ( source instanceof Source ) {
                 this.createTask(
                         'TASK_GATHER',
                         creep.id,
                         creep.pos,
-                        (source.getMemory().linkId) ? 1 : 2
+                        (source.getMemory().linkId && this.storage instanceof StructureStorage && this.storageLink instanceof StructureLink) ? 0 : 2
                 );
                 gatherEnergy.push(creep.pos);
             }
@@ -134,6 +134,17 @@ Logger.logDebug(gatherEnergy.indexOf(energy.pos));
                     );
             }
         }
+        for (var i in this.towers) {
+            var tower = this.towers[i];
+            if (tower.energy < tower.energyCapacity) {
+                this.createTask(
+                        'TASK_DELIVER',
+                        tower.id,
+                        tower.pos,
+                        tower.energyCapacity - tower.energy
+                );
+            }
+        }
     }
 }
 
@@ -197,7 +208,7 @@ Room.prototype.assignTasks = function(withHandshake) {
                     task.assignmentCreate(creep);
                     creep.taskAssign(task);
                 } else {
-                    Logger.log("no creep found for task " + taskList[i]);
+                    //Logger.log("no creep found for task " + taskList[i]);
                     break;
                 }
             }

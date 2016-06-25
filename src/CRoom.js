@@ -78,6 +78,18 @@ Object.defineProperty(Room.prototype, "exits", {
     },
 });
 
+/**
+ * find towers every tick
+ */
+Object.defineProperty(Room.prototype, "towers", {
+    get: function () {
+        if (this._towers === undefined) {
+            this._towers = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
+        }
+        return this._towers;
+    },
+});
+
 // ######### Room #############################################################
 
 Room.prototype.run = function() {
@@ -322,12 +334,11 @@ Room.prototype.creepsCarrierCnt = function() {
         var task = creep.getCurrentTask();
         if ( task instanceof CTask ) {
             var source = task.getTarget();
-            if ( source instanceof Source) {
-                cnt += source.getMemory().linkId ? 2 : 2;
+            if ( source instanceof Source ) {
+                cnt += source.getMemory().linkId && this.storage instanceof StructureStorage && this.storageLink instanceof StructureLink ? 0 : 2;
             }
         }
     }
-
     return cnt;
 };
 Room.prototype.creepsCarrierTinyCnt = function() {

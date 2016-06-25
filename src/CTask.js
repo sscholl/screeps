@@ -13,7 +13,7 @@ class CTask {
         if (CTask._init !== true) {
            CTask._init = true;
 
-           var methods = ['assignmentSearch'];
+           var methods = []; //['assignmentSearch'];
            for (var i in methods) {
                Profiler._.wrap('CTask', CTask, methods[i]);
                Logger._.wrap('CTask', CTask, methods[i]);
@@ -191,8 +191,10 @@ class CTask {
                 break;
                 case 'TASK_GATHER':  this.prio = 62; break;
                 case 'TASK_DELIVER':
-                    if (this.getTarget().structureType === STRUCTURE_STORAGE || this.getTarget().structureType === STRUCTURE_CONTAINER) {
+                    if ( this.getTarget() instanceof StructureStorage || this.getTarget() instanceof StructureContainer ) {
                         this.prio = 15;
+                    } else if (this.getTarget() instanceof StructureTower ) {
+                        this.prio = 30;
                     } else if (this.getTarget() instanceof Spawn ) {
                         if (this.getTarget().id === this.getRoom().memory.controllerRefillId) {
                             this.prio = 50;

@@ -149,7 +149,7 @@ Creep.prototype.fillOnStructure = function(structure) {
 
 Creep.prototype.fillStructure = function(structure) {
     var r = -99;
-    if (structure instanceof StructureStorage || structure instanceof StructureLink || structure instanceof StructureSpawn || structure instanceof StructureExtension) {
+    if ( structure instanceof StructureStorage || structure instanceof StructureLink || structure instanceof StructureSpawn || structure instanceof StructureExtension || structure instanceof StructureTower ) {
         this.movePredefined(structure.pos);
         r = this.transfer(structure, RESOURCE_ENERGY);
     } else {
@@ -426,8 +426,16 @@ Creep.prototype.taskFillStorage = function() {
     var link = this.getCurrentTask().getTarget();
     if (link instanceof StructureLink && this.room.storage instanceof StructureStorage) {
         if (this.carry.energy > 0) {
-            if (this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity)
+            var tower = undefined;
+            for (var i in this.room.towers)
+                if ( ! this.room.towers[i].isFull() ) {
+                    tower = this.room.towers[i];
+                    break;
+                }
+            if ( this.room.defaultSpawn.energy != this.room.defaultSpawn.energyCapacity )
                 this.fillStructure(this.room.defaultSpawn)
+            else if ( tower instanceof StructureTower )
+                this.fillStructure(tower)
             else
                 this.fillStructure(this.room.storage)
         } else {
