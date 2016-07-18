@@ -11,8 +11,8 @@ class ConstructionManager {
     static init () {
         if (ConstructionManager._init !== true) {
            ConstructionManager._init = true;
-           var methods = ['run', 'planInfrastructure', 'flagRoad'];
-           for (var i in methods) {
+           let methods = ['run', 'planInfrastructure', 'flagRoad', 'createConstructionFlag'];
+           for (let i in methods) {
                Profiler._.wrap('ConstructionManager', ConstructionManager, methods[i]);
                Logger._.wrap('ConstructionManager', ConstructionManager, methods[i]);
            }
@@ -50,7 +50,7 @@ class ConstructionManager {
                 this._memory = this.memory = { }; //TODO: check memory setter
                 this.memory.roads = [];
                 this.memory.occupied = new Array(50);
-                for (var i = 0; i < 50; ++ i) {
+                for (let i = 0; i < 50; ++ i) {
                   this.memory.occupied[i] = new Array(50);
                 }
             }
@@ -68,6 +68,9 @@ class ConstructionManager {
     get room () {
        return this._room;
     }
+
+    get dryRun () { return this._dryRun; }
+    set dryRun (v) { this._dryRun = v; }
 
     /**
      * get a flag of this room
@@ -88,12 +91,13 @@ class ConstructionManager {
     /**
      * plan the constructions of room
      */
-    run () {
+    run ( dryRun = false ) {
+        this.dryRun = dryRun;
         if ( this.room.controller instanceof StructureController) { // TODO: downgrade by accident??  &&   this.memory._plannedLevel !== this.room.controller.level
             this.planInfrastructure();
-            for (var structureType in CONTROLLER_STRUCTURES) {
-                var max = CONTROLLER_STRUCTURES[structureType][this.room.controller.level];
-                for (var i = 0; i < max; ++ i) {
+            for (let structureType in CONTROLLER_STRUCTURES) {
+                let max = CONTROLLER_STRUCTURES[structureType][this.room.controller.level];
+                for (let i = 0; i < max; ++ i) {
                     switch (structureType) {
                         case STRUCTURE_SPAWN:
                             //in range 4 to controller (if possible)
@@ -139,53 +143,106 @@ class ConstructionManager {
         //CONSTRUCTION_COST[STRUCTURE_SPAWN]
         //CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][controllerLevel] = max;
         //MAX_CONSTRUCTION_SITES
+        this.dryRun = false;
     }
 
     planInfrastructure() {
         if (this.memory._plannedInfrastructure === undefined) {
             /* ROADS */
-            for (var i in this.room.exits) {
-                this.addRoad(this.room.exits[i], this.room.centerPos);
+            if ( this.room.controller.my ) {
+                for (let i in this.room.exits) {
+                    this.addRoad(this.room.exits[i], this.room.centerPos);
+                }
             }
-            for (var i in this.room.sources) {
-                this.addRoad(this.room.sources[i].pos, this.room.centerPos);
+            for (let i in this.room.sources) {
+                this.addRoad(this.room.sources[i].spot.pos, this.room.centerPos);
+            }
+            for ( let f of this.room.find(FIND_FLAGS, { filter: { color: COLOR_YELLOW, secondaryColor: COLOR_GREY } }) ) {
+                this.addRoad(f.pos, this.room.centerPos);
             }
             /* WALLS AND RAMPARDS*/
-            for (var i of Room.EXITS) {
-                var exits = this.room.find(i);
-                for (var j in exits) {
-this.room.createFlag(exits[j].x, exits[j].y);
+            for (let i of Room.EXITS) {
+                let exits = this.room.find(i);
+                for (let j in exits) {
+//this.room.createFlag(exits[j].x, exits[j].y);
                 }
-                Logger.logDebug(exits);
+//Logger.logDebug(exits);
             }
             this.memory._plannedInfrastructure = true;
         }
     }
 
     addRoad (from, to) {
-        var path = this.room.findPath(from, to, { ignoreCreeps: true });
+        let path = this.room.findPath(from, to, { ignoreCreeps: true });
         this.memory.roads.push(path);
-        this.flagRoad(path);
+        if ( this.dryRun ) 
+            this.flagRoad(path);
+        else 
+            this.buildRoad(path);
     }
 
     flagRoad (path) {
+        for ( let i in path ) {
+            this.createConstructionFlag(STRUCTURE_ROAD, path[i]);
+        }
+    }
+
+    buildRoad (path) {
+        for ( let i in path ) {
+            let r = this.room.createConstructionSite(path[i].x, path[i].y, STRUCTURE_ROAD);
+            if ( r !== OK ) {
+                this.room.logError("could not create constructionSite: " + r);
+                if ( r ===  ERR_FULL ) {
+                    this.room.logError("Limit of 100 constructionSites exhausted.");
+                    return;
+                }
+            }
+        }
+    }
+    
+    buildContainers () {
+        for ( let id in this.room.sources ) {
+            var source = this.room.sources[id];
+            if ( ! (source.link instanceof Structure) ) {
+                let c = source.spot.lookFor(LOOK_CONSTRUCTION_SITES);
+                if ( ! c.length ) {
+                    let r = this.room.createConstructionSite(source.spot, STRUCTURE_CONTAINER);
+                    if ( r !== OK ) this.room.log("Can't create construction site: " + r);
+                }
+            }
+        }
+    }
+    
+    createConstructionFlag (structureType, pos) {
         if (this.memory.flagRoadCount === undefined)
             this.memory.flagRoadCount = 0;
-        for ( var i in path ) {
-            var name = this.flagName(STRUCTURE_ROAD, this.memory.flagRoadCount ++);
-            var r = this.room.createFlag(path[i].x, path[i].y, name, COLOR_WHITE, COLOR_CYAN);
-            if (r !== name)
-                this.room.logError("Flag " + name + " can't be created.");
+        let name, color1, color2;
+        switch ( structureType ) {
+            case STRUCTURE_ROAD: 
+                name = this.flagName(STRUCTURE_ROAD, this.memory.flagRoadCount ++);
+                color1 = COLOR_WHITE; color2 = COLOR_CYAN;
+                break;
+            default: return -1;
+        }
+            
+        let r = this.room.createFlag(pos.x, pos.y, name, color1, color2);
+        if (r === name) {
+            Game.flags[name].memory.isConstruction = true;
+        } else {
+            this.room.logError("Flag " + name + " can't be created.");
             if (r === ERR_NAME_EXISTS)
                 this.room.logError("Flag " + name + " already exists.");
         }
     }
-
-    buildRoad (from, to) {
-        var path = this.room.findPath(from, to, { ignoreCreeps: true });
-        for ( var i in path ) {
-            var result = this.room.createConstructionSite(path[i].x, path[i].y, Game.STRUCTURE_ROAD);
-        }
+    
+    clear () {
+        for ( let c of this.room.find(FIND_CONSTRUCTION_SITES) ) 
+            if ( c.progress === 0 )
+                c.remove();
+        this.memory._plannedInfrastructure = undefined;
+        for ( let f of this.room.find(FIND_FLAGS, { filter: { memory: { isConstruction: true } } }) ) 
+            f.remove();
+        
     }
 
 };

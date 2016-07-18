@@ -33,7 +33,7 @@ Object.defineProperty(Source.prototype, "spot", { get: function () {
 Object.defineProperty(Source.prototype, "link", {
     get: function () {
         if ( this._link === undefined )
-            if ( this.memory.linkId ) {
+            if ( this.memory.linkId && Game.getObjectById(this.memory.linkId) ) {
                 this._link = Game.getObjectById(this.memory.linkId);
             } else {
                 var link = this.pos.findInRangeLink(2);
@@ -52,20 +52,36 @@ Object.defineProperty(Source.prototype, "link", {
 Object.defineProperty(Source.prototype, "container", {
     get: function () {
         if ( this._container === undefined )
-            if ( this.memory.containerId ) {
+            if ( this.memory.containerId && Game.getObjectById(this.memory.containerId) ) {
                 this._container = Game.getObjectById(this.memory.containerId);
             } else {
-                for ( let s of this.spot.lookFor(LOOK_STRUCTURES) ) 
-                    if ( s instanceof StructureContainer ) {
-                        this.memory.containerId = s.id;
-                        this._container = s;
-                    }
+                for ( let s of this.spot.lookFor(LOOK_STRUCTURES) )
+                    if ( s instanceof StructureContainer )
+                        this.container = s;
             }
         return this._container;
     },
     set: function (v) {
         this._container = v;
-        this.memory.container = v.id;
+        this.memory.containerId = v.id;
+    },
+});
+
+Object.defineProperty(Source.prototype, "hostileSpawn", {
+    get: function () {
+        if ( this._hostileSpawn === undefined )
+            if ( this.memory.hostileSpawnId && Game.getObjectById(this.memory.hostileSpawnId) ) {
+                this._hostileSpawn = Game.getObjectById(this.memory.hostileSpawnId);
+            } else {
+                for ( let s of this.pos.findEnemyStructuresInAttackRange() ) 
+                    if ( s instanceof StructureSpawn )
+                        this.hostileSpawn = s;
+            }
+        return this._hostileSpawn;
+    },
+    set: function (v) {
+        this._hostileSpawn = v;
+        this.memory.hostileSpawnId = v.id;
     },
 });
 

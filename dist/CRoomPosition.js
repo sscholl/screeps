@@ -14,6 +14,14 @@ module.exports = function () {
     }
 }
 
+Object.defineProperty(RoomPosition.prototype, "energy", { get: function () {
+        if (this._energy === undefined) {
+            let energys = this.lookFor('energy');
+            if ( energys.length && energys[0] )
+                this._energy = energys[0];
+        }
+        return this._energy;
+}});
 
 // ######## RoomPosition ##############################################
 RoomPosition.prototype.getRoom = function() {
@@ -131,7 +139,9 @@ RoomPosition.prototype.findClosestSearchingUpgrader = function () {
 RoomPosition.prototype.findClosestCreep = function (_bodyType) {
     var bodyType = _bodyType;
     return this.findClosestByPath(FIND_MY_CREEPS, {filter:
-                function (creep) {
+                function (creep) { if (creep.memory.body==='BODY_DEFAULT'&&creep.memory.body === bodyType
+                            && (creep.memory.phase === 'PHASE_SEARCH'
+                                    || creep.memory.phase === undefined)) creep.say("im found");
                     return creep.memory.body === bodyType
                             && (creep.memory.phase === 'PHASE_SEARCH'
                                     || creep.memory.phase === undefined)

@@ -1,13 +1,13 @@
 "use strict";
 
-var Logger = require('Logger');
-var Profiler = require('Profiler');
+let Logger = require('Logger');
+let Profiler = require('Profiler');
 
 module.exports = function () {
     if ( Creep._initDebugGuard !== true ) {
         Creep._initDebugGuard = true;
-        var methods = [];
-        for (var i in methods) {
+        let methods = [];
+        for (let i in methods) {
             Profiler._.wrap('Creep', Creep, methods[i]);
             Logger._.wrap('Creep', Creep, methods[i]);
         }
@@ -17,26 +17,35 @@ module.exports = function () {
 // ########### GENERAL SECTION #########################################
 
 Creep.prototype.generalActionGuard = function() {
-    var target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
-        return object.getActiveBodyparts(ATTACK) > 0 || object.getActiveBodyparts(RANGED_ATTACK) > 0 ;
+    
+    let target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
+        return object.getActiveBodyparts(HEAL) > 0 ;
     }});
+    
     if (target instanceof Creep) {
-        this.attackMelee(target);
+        this.attackRoutine(target);
     } else {
-        var target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+        let target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
+        return object.getActiveBodyparts(ATTACK) > 0 || object.getActiveBodyparts(RANGED_ATTACK) > 0 ;
+        }});
         if (target instanceof Creep) {
-            this.attackMelee(target);
+            this.attackRoutine(target);
         } else {
-            var flag = this.pos.findClosestByRange(FIND_FLAGS, { filter: { color: COLOR_RED, secondaryColor: COLOR_RED } });
-            if ( flag instanceof Flag ) {
-                var structures = flag.pos.lookFor(LOOK_STRUCTURES);
-                if (structures.length && structures[0] instanceof Structure) {
-                    this.attackMelee(structures[0]);
-                } else {
-                    flag.remove();
-                }
+            let target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+            if (target instanceof Creep) {
+                this.attackRoutine(target);
             } else {
-                return false;
+                let flag = this.pos.findClosestByRange(FIND_FLAGS, { filter: { color: COLOR_RED, secondaryColor: COLOR_RED } });
+                if ( flag instanceof Flag ) {
+                    let structures = flag.pos.lookFor(LOOK_STRUCTURES);
+                    if (structures.length && structures[0] instanceof Structure) {
+                        this.attackRoutine(structures[0]);
+                    } else {
+                        flag.remove();
+                    }
+                } else {
+                    return false;
+                }
             }
         }
     }
@@ -44,27 +53,36 @@ Creep.prototype.generalActionGuard = function() {
 }
 
 Creep.prototype.generalActionRanger = function () {
-    var target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
-        return object.getActiveBodyparts(ATTACK) > 0 || object.getActiveBodyparts(RANGED_ATTACK) > 0 ;
+    
+    let target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
+        return object.getActiveBodyparts(HEAL) > 0 ;
     }});
+    
     if (target instanceof Creep) {
-        this.attackRanged(target);
+        this.attackRoutine(target);
     } else {
-        var target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+        let target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
+            return object.getActiveBodyparts(ATTACK) > 0 || object.getActiveBodyparts(RANGED_ATTACK) > 0 ;
+        }});
         if (target instanceof Creep) {
-            this.attackRanged(target);
+        this.attackRoutine(target);
         } else {
-            var flag = this.pos.findClosestByRange(FIND_FLAGS, { filter: { color: COLOR_RED, secondaryColor: COLOR_RED } });
-            if ( flag instanceof Flag ) {
-                var structures = flag.pos.lookFor(LOOK_STRUCTURES);
-                if (structures.length && structures[0] instanceof Structure) {
-                    this.movePredefined(structures[0], {}, 1);
-                    this.rangedAttack(structures[0]);
-                } else {
-                    flag.remove();
-                }
+            let target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+            if (target instanceof Creep) {
+            this.attackRoutine(target);
             } else {
-                return false;
+                let flag = this.pos.findClosestByRange(FIND_FLAGS, { filter: { color: COLOR_RED, secondaryColor: COLOR_RED } });
+                if ( flag instanceof Flag ) {
+                    let structures = flag.pos.lookFor(LOOK_STRUCTURES);
+                    if (structures.length && structures[0] instanceof Structure) {
+                        this.movePredefined(structures[0], {}, 1);
+                        this.rangedAttack(structures[0]);
+                    } else {
+                        flag.remove();
+                    }
+                } else {
+                    return false;
+                }
             }
         }
     }
@@ -72,28 +90,28 @@ Creep.prototype.generalActionRanger = function () {
 }
 
 Creep.prototype.runGuard = function() {
-    var target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
+    let target = this.pos.findClosestByPath(this.room.getHostileCreeps(), {filter: function (object) {
         return object.getActiveBodyparts(ATTACK) > 0 || object.getActiveBodyparts(RANGED_ATTACK) > 0 ;
     }});
     if (target instanceof Creep) {
-        this.attackMelee(target);
+        this.attackRoutine(target);
     } else {
-        var target = this.pos.findClosestByPath(this.room.getHostileCreeps());
+        let target = this.pos.findClosestByPath(this.room.getHostileCreeps());
         if (target instanceof Creep) {
-            this.attackMelee(target);
+            this.attackRoutine(target);
         } else {
-            var flag = this.pos.findClosestByRange(FIND_FLAGS, { filter: { color: COLOR_RED, secondaryColor: COLOR_RED } });
+            let flag = this.pos.findClosestByRange(FIND_FLAGS, { filter: { color: COLOR_RED, secondaryColor: COLOR_RED } });
             if ( flag instanceof Flag ) {
-                var structures = flag.pos.lookFor(LOOK_STRUCTURES);
+                let structures = flag.pos.lookFor(LOOK_STRUCTURES);
                 if (structures.length && structures[0] instanceof Structure) {
-                    this.attackMelee(structures[0]);
+                    this.attackRoutine(structures[0]);
                 } else {
                     flag.remove();
                 }
             } else if ( this.getCurrentTask() ) {
                 this.taskMoveAndStay();
             } else {
-                var collectionPoint = Game.flags[this.room.name + '_M'];
+                let collectionPoint = Game.flags[this.room.name + '_M'];
                 if (collectionPoint)
                     this.moveTo(collectionPoint);
             }
@@ -103,21 +121,12 @@ Creep.prototype.runGuard = function() {
     }
 }
 
-Creep.prototype.attackMelee = function(target) {
-    if ( this.hits < this.hitsMax * 0.3 )
+Creep.prototype.attackRoutine = function(target) {
+    if ( this.hits < this.hitsMax * 0.3)
         this.moveTo(this.room.centerPos);
-    else if ( ! this.pos.inRangeTo(target, 1) )
+    //else if (!this.pos.inRangeTo(target, 3))
         this.moveTo(target);
-    else
-        this.attack(target);
-    this.memory.currentTargetId = target.id;
-}
-
-Creep.prototype.attackRanged = function(target) {
-    if (this.pos.inRangeTo(target, 2) || this.hits < this.hitsMax * 0.3)
-        this.moveTo(this.room.centerPos);
-    else if (!this.pos.inRangeTo(target, 3))
-        this.moveTo(target);
+    this.attack(target);
     this.rangedAttack(target);
     this.memory.currentTargetId = target.id;
 }

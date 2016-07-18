@@ -12,27 +12,29 @@ let CTasks              = require('CTasks');
 Profiler._.init();
 Logger._.init();
 
-var includes = ['CMap', 'CSpawn', 'CStructure', 'CSource', 'CRoomPosition', 'CCreep', 'CCreepXGuard', 'CCreepXHealer', 'CRoom_Tasks', 'CRoom'];
-var modules = [];
-for (var i in includes) {
+let includes = ['CMap', 'CSpawn', 'CStructure', 'CSource', 'CRoomPosition', 'CCreep', 'CCreepXGuard', 'CCreepXHealer', 'CRoom_Tasks', 'CRoom'];
+let modules = [];
+for (let i in includes) {
     modules.push(require(includes[i]));
 }
 
-
+Logger.ACTIVE=true;
 
 module.exports.loop = function () {
     if (Game.cpu.tickLimit < 500) {
-        for(var creepName in Game.creeps) {
-            var creep = Game.creeps[creepName];
+        for(let creepName in Game.creeps) {
+            let creep = Game.creeps[creepName];
             if (creep.bodyType === 'BODY_HARVESTER' || creep.bodyType === 'BODY_RANGER' || creep.bodyType === 'BODY_HEALER') creep.run();
         }
         console.log("Execution of loop is not possible, because tick limit is " + Game.cpu.tickLimit + "<500");
+        Memory.stats["Game.tickSkipped"] = 1;
         return;
     }
+        Memory.stats["Game.tickSkipped"] = 0;
 
-    for (var i in modules) modules[i]();
+    for (let i in modules) modules[i]();
 
-    var time = Game.cpu.getUsed();
+    let time = Game.cpu.getUsed();
     Logger.functionEnter("LOAD TIME " + time);
 //    Logger.log("Game.cpu.limit " + Game.cpu.limit);
 //    Logger.log("Game.cpu.tickLimit " + Game.cpu.tickLimit);
@@ -40,15 +42,21 @@ module.exports.loop = function () {
 
     GameManager._.run();
 
-    for (var roomName in Game.rooms) {
-        var room = Game.rooms[roomName];
+    let timeRooms = Game.cpu.getUsed();
+    Logger.functionEnter("rooms[" + Object.keys(Game.rooms).length + "].run");
+    for (let roomName in Game.rooms) {
+        let room = Game.rooms[roomName];
         room.run();
     }
+    Logger.functionExit("rooms[" + Object.keys(Game.rooms).length + "].run", Game.cpu.getUsed() - timeRooms);
 
-    for(var creepName in Game.creeps) {
-        var creep = Game.creeps[creepName];
+    let timeCreeps = Game.cpu.getUsed();
+    Logger.functionEnter("creeps[" + Object.keys(Game.creeps).length + "].run");
+    for(let creepName in Game.creeps) {
+        let creep = Game.creeps[creepName];
         creep.run();
     }
+    Logger.functionExit("creeps[" + Object.keys(Game.creeps).length + "].run", Game.cpu.getUsed() - timeCreeps);
 
     Profiler._.finalize();
 

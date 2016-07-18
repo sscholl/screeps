@@ -74,7 +74,7 @@ class CTasks {
     getPositions () {
         var poss = [];
         for (var i in this.collection) {
-            poss.push(this.collection[i].getPos());
+            poss.push(this.collection[i].pos);
         }
         return poss;
     }

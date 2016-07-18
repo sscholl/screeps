@@ -20,7 +20,7 @@ Map.prototype.getExits = function () {
 };
 
 Map.prototype.findExitCached = function (fromRoom, toRoom) {
-	var exits = this.getExits();
+	let exits = this.getExits();
 	if (exits[fromRoom + '_' + toRoom] === undefined)
 		this.memory.exits[fromRoom + '_' + toRoom] = this.findExit(fromRoom, toRoom);
 	return this.memory.exits[fromRoom + '_' + toRoom];

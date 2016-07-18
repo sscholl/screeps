@@ -6,8 +6,8 @@ let Logger = require('Logger');
 module.exports = function () {
     if ( Spawn._initDebug !== true ) {
         Spawn._initDebug = true;
-        var methods = [];//['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
-        for (var i in methods) {
+        let methods = ['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
+        for (let i in methods) {
             Profiler._.wrap('Spawn', Spawn, methods[i]);
             Logger._.wrap('Spawn', Spawn, methods[i]);
         }
@@ -32,28 +32,35 @@ Spawn.prototype.spawn = function (body, bodyParts, name, memory) {
     return r;
 }
 
-Spawn.prototype.spawnDefault = function (name, memory) {
-    var bodyParts = [];
-    if ( this.room.hasEnergy(750) ) {
-        bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
-    } else if ( this.room.hasEnergy(550) ) {
-        bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
-    } else if ( this.room.hasEnergy(500) ) {
-        bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
-    } else if ( this.room.hasEnergy(400) ) {
-        bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
-    } else if ( this.room.creepsDefault.length >= 1 ) {
-        bodyParts = [WORK, CARRY, MOVE, MOVE];
+Spawn.prototype.spawnDefault = function (name, memory, qtyWork) {
+    let bodyParts = [];
+    if ( qtyWork && this.room.hasEnergyCapacitySave(200 * qtyWork) ) {
+        for (let i = 0; i < qtyWork; ++ i )
+            bodyParts = bodyParts.concat([WORK, CARRY, MOVE]);
     } else {
-        bodyParts = [WORK, CARRY, MOVE];
+        if ( this.room.hasEnergy(750) ) {
+            bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
+        } else if ( this.room.hasEnergy(550) ) {
+            bodyParts = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE];
+        } else if ( this.room.hasEnergy(500) ) {
+            bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE];
+        } else if ( this.room.hasEnergy(400) ) {
+            bodyParts = [WORK, WORK, CARRY, CARRY, MOVE, MOVE];
+        } else if ( this.room.creepsDefault.length >= 1 ) {
+            bodyParts = [WORK, CARRY, MOVE, MOVE];
+        } else {
+            bodyParts = [WORK, CARRY, MOVE];
+        }
     }
     return this.spawn('BODY_DEFAULT', bodyParts, name, memory);
 }
 
 Spawn.prototype.spawnHarvester = function (name, memory) {
-    var bodyParts = [];
-    if ( this.room.hasEnergyCapacitySave(800) ) {
-        bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE ];
+    let bodyParts = [];
+    if ( this.room.hasEnergyCapacitySave(950) ) {
+        bodyParts = [ WORK, WORK, MOVE, WORK, MOVE, WORK, MOVE, WORK, MOVE, WORK, MOVE, CARRY, MOVE ];
+    } else if ( this.room.hasEnergyCapacitySave(800) ) {
+        bodyParts = [ WORK, WORK, MOVE, WORK, MOVE, WORK, MOVE, WORK, MOVE, CARRY, MOVE ];
     } else if ( this.room.hasEnergyCapacitySave(600) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ];
     } else if ( this.room.hasEnergyCapacitySave(550) ) {
@@ -73,82 +80,64 @@ Spawn.prototype.spawnHarvester = function (name, memory) {
 }
 
 Spawn.prototype.spawnCarrier = function (name, memory) {
-    var bodyParts = [];
-    if ( false && this.room.hasEnergyCapacitySave(1300) )
+    let bodyParts = [];
+    if ( this.room.hasEnergyCapacitySave(2450) )
         bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE  //100
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //500
+            WORK, MOVE, //150
         ];
-    else if ( false && this.room.hasEnergyCapacitySave(1000) )
+    else if ( this.room.hasEnergyCapacitySave(1450) )
         bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE  //100
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, WORK, MOVE, //250
+        ];
+    else if ( this.room.hasEnergyCapacitySave(1150) )
+        bodyParts = [
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  CARRY, MOVE,  //400
+            WORK, MOVE, //150
+        ];
+    else if ( this.room.hasEnergyCapacitySave(950) )
+        bodyParts = [ 
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
+            CARRY, MOVE, CARRY, MOVE,  //200
+            WORK, MOVE, //150
         ];
     else if ( this.room.hasEnergyCapacitySave(800) )
         bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
+            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
             CARRY, MOVE, CARRY, MOVE  //200
         ];
     else if ( this.room.hasEnergyCapacitySave(500) )
-        bodyParts = [
-            CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
-            CARRY, MOVE, CARRY, MOVE  //200
-        ];
+        bodyParts = [ CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ]; //500
     else
         bodyParts = [ CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];  //300
     return this.spawn('BODY_CARRIER', bodyParts, name, memory);
 }
 
 Spawn.prototype.spawnCarrierTiny = function (name, memory) {
-    var bodyParts = [ CARRY, MOVE ];
+    let bodyParts = [ CARRY, MOVE ];
     return this.spawn('BODY_CARRIER_TINY', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnUpgrader = function (name, memory) {
-    var bodyParts = [];
-    if ( this.room.hasEnergyCapacitySave(2200) && this.room.creepsUpgrader.length > 2 ) {
-        bodyParts = [
-            WORK, WORK, WORK, WORK, WORK, //500
-            WORK, WORK, WORK, WORK, WORK, //500
-            WORK, WORK, WORK, WORK, WORK, //500
-            WORK, WORK, WORK, WORK, WORK, //500
-            CARRY, MOVE, CARRY, MOVE //200
-        ];
-    } else if ( this.room.hasEnergyCapacitySave(1700) && this.room.creepsUpgrader.length > 1 ) {
-        bodyParts = [
-            WORK, WORK, WORK, WORK, WORK, //500
-            WORK, WORK, WORK, WORK, WORK, //500
-            WORK, WORK, WORK, WORK, WORK, //500
-            CARRY, MOVE, CARRY, MOVE //200
-        ];
-    } else if ( this.room.hasEnergyCapacitySave(1100) && this.room.creepsUpgrader.length > 0 ) {
-        bodyParts = [
-            WORK, WORK, WORK, WORK, WORK, //500
-            WORK, WORK, WORK, WORK, WORK, //500
-            CARRY, MOVE //100
-        ];
-    } else if ( this.room.hasEnergyCapacitySave(800) ) {
-        bodyParts = [ WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE ]; //800
-    } else if ( this.room.hasEnergyCapacitySave(500) ) {
-        bodyParts = [ WORK, WORK, WORK, WORK, CARRY, MOVE ]; //500
-    } else if ( this.room.hasEnergyCapacitySave(400) ) {
-        bodyParts = [ WORK, WORK, WORK, CARRY, MOVE ]; //400
-    } else if ( this.room.hasEnergyCapacitySave(300) ) {
-        bodyParts = [ WORK, WORK, CARRY, MOVE ]; //300
-    } else {
-        this.room.logError("can't create upgrader");
+Spawn.prototype.spawnUpgrader = function (name, memory, qtyWork) {return;
+    let bodyParts = [CARRY, MOVE];
+    for ( let i = 1; i <= qtyWork; ++ i ) {
+        if ( this.room.hasEnergyCapacitySave(i * BODYPART_COST[WORK] + BODYPART_COST[MOVE]) )
+            bodyParts = bodyParts.unshift(WORK); //unshift adds an element in the beginning of the array
+        else 
+            break;
     }
+Logger.logDebug(bodyParts);
     return this.spawn('BODY_UPGRADER', bodyParts, name, memory);
 }
 
 Spawn.prototype.spawnHealer = function (name, memory) {
-    var bodyParts = [];
+    let bodyParts = [];
     if (this.room.hasEnergyCapacitySave(1000)) {
         bodyParts = [
             HEAL, MOVE, HEAL, MOVE, HEAL, MOVE, HEAL, MOVE //1000
@@ -164,7 +153,7 @@ Spawn.prototype.spawnHealer = function (name, memory) {
 };
 
 Spawn.prototype.spawnRanger = function (name, memory) {
-    var bodyParts = [];
+    let bodyParts = [];
     if (false && this.room.hasEnergyCapacitySave(2300)) { // max: 2300
         bodyParts = [
             TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
@@ -179,7 +168,7 @@ Spawn.prototype.spawnRanger = function (name, memory) {
                 RANGED_ATTACK, MOVE, //200
                 RANGED_ATTACK, MOVE  //200
         ]; // sum: 2300
-    } else if (this.room.hasEnergyCapacitySave(1700)) { // max: 1700
+    } else if (this.room.hasEnergyCapacitySave(1560)) { // max: 1700
         bodyParts = [
             TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
             RANGED_ATTACK, MOVE, //200
@@ -187,9 +176,9 @@ Spawn.prototype.spawnRanger = function (name, memory) {
             RANGED_ATTACK, MOVE, //200
                 RANGED_ATTACK, MOVE, //200
                 RANGED_ATTACK, MOVE, //200
-                RANGED_ATTACK, MOVE, //200
-                RANGED_ATTACK, MOVE  //200
-        ]; // sum: 1700
+                ATTACK, MOVE,  //130
+                ATTACK, MOVE  //130
+        ]; // sum: 1560
     } else if (this.room.hasEnergyCapacitySave(1300)) { // max: 1300
         bodyParts = [
             TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
@@ -207,13 +196,13 @@ Spawn.prototype.spawnRanger = function (name, memory) {
     return this.spawn('BODY_RANGER', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnMelee = function (name, memory, cntAttack, cntThough = 0) {
-    var bodyParts = [];
-    this.room.log(cntAttack * 90 + cntAttack * 60);
-    if ( cntAttack && this.room.hasEnergyCapacitySave(cntAttack * 90 + cntAttack * 60) ) {
-        for (let i = 0; i < cntThough; ++ i )
+Spawn.prototype.spawnMelee = function (name, memory, qtyAttack, qtyThough = 0) {
+    let bodyParts = [];
+    this.room.log(qtyAttack * 90 + qtyAttack * 60);
+    if ( qtyAttack && this.room.hasEnergyCapacitySave(qtyAttack * 90 + qtyAttack * 60) ) {
+        for (let i = 0; i < qtyThough; ++ i )
             bodyParts = bodyParts.concat([TOUGH, MOVE]);
-        for (let i = 0; i < cntAttack; ++ i )
+        for (let i = 0; i < qtyAttack; ++ i )
             bodyParts = bodyParts.concat([ATTACK, MOVE]);
     } else {
         if (this.room.hasEnergyCapacitySave(950)) { // max: 950
@@ -235,9 +224,9 @@ Spawn.prototype.spawnMelee = function (name, memory, cntAttack, cntThough = 0) {
 }
 
 Spawn.prototype.spawnClaim = function (name, memory, qtyClaim) {
-    var bodyParts = [];
+    let bodyParts = [];
     if ( this.room.hasEnergyCapacitySave(qtyClaim * 650) ) {
-        for (var i = 0; i < qtyClaim; ++ i )
+        for (let i = 0; i < qtyClaim; ++ i )
             bodyParts = bodyParts.concat([CLAIM, MOVE]);
     } else if ( this.room.hasEnergyCapacitySave(650) ) {
         bodyParts = [CLAIM, MOVE];
@@ -246,8 +235,8 @@ Spawn.prototype.spawnClaim = function (name, memory, qtyClaim) {
 };
 
 Spawn.prototype.getRandomName = function () {
-    var chars = "abcdefghijklmnopqrstufwxyzABCDEFGHIJKLMNOPQRSTUFWXYZ1234567890";
-    var pwd = _.sample(chars, 6);
+    let chars = "abcdefghijklmnopqrstufwxyzABCDEFGHIJKLMNOPQRSTUFWXYZ1234567890";
+    let pwd = _.sample(chars, 6);
     while ( Memory.creeps[pwd.join("")]) pwd = _.sample(chars, length || 6);
     return pwd.join("");
 }

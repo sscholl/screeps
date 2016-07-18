@@ -35,6 +35,9 @@ var Logger = class Logger {
         Logger.indentation = ["", "  ", "    ", "      ", "        ", "          ", "            ", "              ", "                ", "                ", "                  ", "                    ", "                      ", "                        ", "                          ", "                            ", "                              ", "                                ", "                                  ", "                                    ", "                                      ", "                                        "];
 
         Logger.level = 0;
+        Logger.logStack = [];
+        Logger.logStackEnterLevel = [];
+        Logger.logStackShowLevel = [];
     }
 
     /**
@@ -61,15 +64,22 @@ var Logger = class Logger {
      * @param {Object} class object
      * @param {String} method name
      */
-    wrap (LoggerName, c, method) {
+    wrap (LoggerName, c, method, tReqBoundary = 5) {
         if (Logger.ACTIVE) {
             var f = c.prototype[method];
             c.prototype[method] = function() {
                 Logger.functionEnter(LoggerName + '.' + method);
 
                 var tStart      = Game.cpu.getUsed();
-                var returnValue = f.apply(this, arguments);
+                try {
+                    var returnValue = f.apply(this, arguments);
+                } catch (e) {
+                    Logger.logDebug(e);
+                    Logger.logError(e.stack);
+                }
                 var tReq        = Game.cpu.getUsed() - tStart;
+                
+                if ( tReq >= tReqBoundary ) Logger.logStackShowLevel[Logger.level - 1] = true;
 
                 Logger.functionExit(LoggerName + '.' + method,  + tReq);
 
@@ -83,7 +93,7 @@ var Logger = class Logger {
      * @param {String} msg
      */
     static functionEnter (name) {
-        Logger.log( '--> ' + name );
+        Logger.log( '--> ' + name, true, false );
         Logger.level ++;
     }
 
@@ -93,15 +103,39 @@ var Logger = class Logger {
      */
     static functionExit (name, tReq) {
         Logger.level --;
-        Logger.log( '<-- ' + name  + ' [' + tReq.toFixed(2) + '] ');
+        Logger.log( '<-- ' + name  + ' [' + tReq.toFixed(2) + '] ', false, true);
+    }
+    
+    static logPrintStack () {
+        for ( let i = 0; i < Logger.logStack.length; i ++ ) {
+            console.log(Logger.logStack[i]);
+        }
+        Logger.logStack = [];
     }
 
     /**
      * log a message
      * @param {String} msg
      */
-    static log (msg) {
-        console.log( Logger.indentation[Logger.level] + msg );
+    static log (msg, enter = false, exit = false) {
+        if ( enter ) {
+            Logger.logStack.push( Logger.logMessage(msg) );
+            Logger.logStackEnterLevel[Logger.level] = Logger.logStack.length;
+            Logger.logStackShowLevel[Logger.level] = false;
+        } else if ( exit ) {
+            if ( Logger.logStackShowLevel[Logger.level] ) {
+                Logger.logStack.push( Logger.logMessage(msg) );
+                Logger.logPrintStack ();
+                if (Logger.level > 0 ) Logger.logStackShowLevel[Logger.level - 1] = true;
+            } else {
+                for ( let i = Logger.logStack.length - 1; i >= Logger.logStackEnterLevel[Logger.level] - 1; i --) {
+                    Logger.logStack.pop();
+                }
+            }
+        } else {
+            Logger.logStack.push( Logger.logMessage(msg) );
+            Logger.logStackShowLevel[Logger.level - 1] = true;
+        }
     }
 
     /**
@@ -109,7 +143,7 @@ var Logger = class Logger {
      * @param {String} msg
      */
     static logError (msg) {
-        console.log( Logger.indentation[Logger.level] + 'ERROR: ' + msg );
+        Logger.log( 'ERROR: ' + msg );
     }
 
     /**
@@ -117,7 +151,11 @@ var Logger = class Logger {
      * @param {String} obj
      */
     static logDebug (obj) {
-        console.log( Logger.indentation[Logger.level] + 'DEBUG: ' + JSON.stringifyOnce(obj) );
+        Logger.log( 'DEBUG: ' + JSON.stringifyOnce(obj) );
+    }
+    
+    static logMessage (msg) {
+        return Logger.indentation[Logger.level] + msg;
     }
 
 };

@@ -9,7 +9,7 @@ let CTask = require('CTask');
 module.exports = function () {
     if ( Room._initDebug !== true ) {
         Room._initDebug = true;
-        let methods = [];//, 'run', 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
+        let methods = ['run', 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'towerAction', 'spawnAction']; 
         for ( let i in methods ) {
             Profiler._.wrap('Room', Room, methods[i]);
             Logger._.wrap('Room', Room, methods[i]);
@@ -66,8 +66,8 @@ Object.defineProperty(Room.prototype, "exits", {
                 }
             }
             this._exits = this.memory.exits;
-            for (let e of this._exits)
-                e.__proto__ = RoomPosition.prototype;
+            for (let i in this._exits)
+                this._exits[i].__proto__ = RoomPosition.prototype;
         }
         return this._exits;
     },
@@ -89,11 +89,15 @@ Object.defineProperty(Room.prototype, "defaultSpawn", { get: function () {
 }});
 
 /**
- * find towers every tick
+ * find towers
  */
 Object.defineProperty(Room.prototype, "towers", { get: function () {
-    if (this._towers === undefined)
-        this._towers = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
+    if (this._towers === undefined) {
+        if ( this.controller && this.controller.my )
+            this._towers = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
+        else
+            this._towers = [];
+    }
     return this._towers;
 }});
 
@@ -130,10 +134,10 @@ Room.prototype.run = function() {
         this.initDynamicStructures();
     }
 
-    if (this.memory.timer % 1 === 0) {
+    if (this.memory.timer % 60 === 0) {
         this.initTasksStatic();
     }
-    if (this.memory.timer % 1 == 0) {
+    if (this.memory.timer % 15 == 0) {
         this.initTasksDynamic2();
     }
     if (this.memory.timer % 1 == 0) {
@@ -205,10 +209,7 @@ Room.prototype.initDynamicSources = function() {
     for (let id in this.sources) {
         var source = this.sources[id];
         if (source instanceof Source) {
-            source.memory.isSave = (
-                    this.creepsHealer.length >= 4  * this.hostileSpawns.length
-                    && this.creepsRanger.length >= 3 * this.hostileSpawns.length
-                ) || !source.memory.hasHostileSpawn;
+            source.memory.isSave = ! source.memory.hasHostileSpawn;
             if (source.memory.isSave) {
                 this.memory.sourcesSaveCount ++;
                 this.memory.sourceSpotCount += source.getSpotsCnt();
@@ -285,6 +286,8 @@ Room.prototype.linkAction = function() {
         }
 };
 Room.prototype.towerAction = function () {
+    if ( ! this.towers.length ) return;
+    
     var damagedCreep = this.find(FIND_MY_CREEPS, {
         filter: function(object) {return object !== this && object.hits < object.hitsMax;}
     });
@@ -294,30 +297,32 @@ Room.prototype.towerAction = function () {
     });
     for (var i in this.towers) {
         if ( this.towers[i].energy > 0) {
+            let r = OK;
             if (damagedCreep.length > 0 && damagedCreep[0] instanceof Creep && damagedCreep[0].ticksToLive > 50) {
-                this.towers[i].heal(damagedCreep[0]);
+                r = this.towers[i].heal(damagedCreep[0]);
             } else if (enemies.length > 0 && enemies[0] instanceof Creep) {
-                this.towers[i].attack(enemies[0]);
+                r = this.towers[i].attack(enemies[0]);
             } else if ( this.towers[i].energy > 500 && (( this.storage instanceof StructureStorage && this.storage.store.energy > 10000 ) || ! (this.storage instanceof StructureStorage )) ) {
                 var structureLowest = undefined;
                 for (var j in structuresNeedsRepair) {
                     var structure = structuresNeedsRepair[j];
                     if ( structure instanceof Structure )
                         if ( structure instanceof StructureWall || structure instanceof StructureRampart ) {
-                            if (structure.hits < 200000) {
-                                if (structureLowest instanceof Structure) {
-                                    if (structure.hits < structureLowest.hits) structureLowest = structure;
-                                } else {
-                                    structureLowest = structure;
-                                }
+                            if (structureLowest instanceof Structure) {
+                                if (structure.hits < structureLowest.hits) structureLowest = structure;
+                            } else {
+                                structureLowest = structure;
                             }
                         } else {
                             structureLowest = structure;
                             break;
                         }
                 }
-                if (structureLowest instanceof Structure) this.towers[i].repair(structureLowest);
+                if (structureLowest instanceof Structure) {
+                    let r = this.towers[i].repair(structureLowest);
+                }
             }
+            if ( r !== OK ) this.logError("tower can't do action: " + r);
         }
     }
 };
@@ -361,18 +366,9 @@ Room.prototype.getDefaultUpgraderCount = function() {
     if ( this.controllerRefill instanceof Structure)    return 0;
     else                                                return 1;
 };
-Room.prototype.getDefaultBuilderCount = function() {
-    var cnt = 0;
-//    if (this.constructions.length >= 4) ++ cnt;
-//    if (this.constructions.length >= 3) ++ cnt;
-    if (this.constructions.length >= 2) ++ cnt;
-    if (this.constructions.length >= 1) ++ cnt;
-    return cnt;
-};
 Room.prototype.creepsRequired = function() {
     return this.getDefaultHarvesterCount()
-        + this.getDefaultUpgraderCount()
-        + this.getDefaultBuilderCount(); //harvester, upgrader, @TODO: builder/repairer
+        + this.getDefaultUpgraderCount()//harvester, upgrader
 };
 
 Room.prototype.creepsHarvesterCnt = function() {
@@ -451,18 +447,20 @@ if (! (task instanceof CTask) || !task.valid() ) {Logger.logDebug(i);Logger.logD
             ) {
                 switch ( task.getType() ) {
                     case 'TASK_HARVEST':        creepName = spawn.spawnHarvester(); break;
+                    case 'TASK_UPGRADE':        creepName = spawn.spawnUpgrader(undefined, undefined, task.getQty()); break;
                     case 'TASK_GATHER':         creepName = spawn.spawnCarrier(); break;
+                    case 'TASK_BUILD':          creepName = spawn.spawnDefault(undefined, undefined, task.getQty()); break;
                     case 'TASK_FILLSTORAGE':    creepName = spawn.spawnCarrierTiny(); break;
-                    case 'TASK_UPGRADE':        creepName = spawn.spawnUpgrader(); break;
                     case 'TASK_GUARD':          creepName = spawn.spawnRanger(undefined, undefined, task.getQty()); break;
                 }
-                if ( creepName ) break;
+                if ( creepName ) {
+                    task.assignmentCreate(Game.creeps[creepName]);
+                    Game.creeps[creepName].taskAssign(task);
+                    break;
+                }
             }
         }
-        if ( creepName && task ) {
-            task.assignmentCreate(Game.creeps[creepName]);
-            Game.creeps[creepName].taskAssign(task);
-        } else {
+        if ( ! creepName ) {
             for ( var i of tasks.list ) {
                 task = tasks.collection[i];
                 if (
@@ -472,17 +470,19 @@ if (! (task instanceof CTask) || !task.valid() ) {Logger.logDebug(i);Logger.logD
                     switch ( task.getType() ) {
                         case 'TASK_HARVEST_REMOTE': creepName = spawn.spawnHarvester(); break;
                         case 'TASK_GATHER_REMOTE':  creepName = spawn.spawnCarrier(); break;
+                        case 'TASK_BUILD_REMOTE':   creepName = spawn.spawnDefault(undefined, undefined, task.getQty()); break;
                         case 'TASK_RESERVE_REMOTE': creepName = spawn.spawnClaim(undefined, undefined, task.getQty()); break;
                         case 'TASK_GUARD_REMOTE':   creepName = spawn.spawnRanger(undefined, undefined, task.getQty()); break;
                     }
-                    if ( creepName ) break;
+                    if ( creepName ) {
+                        task.assignmentCreate(Game.creeps[creepName]);
+                        Game.creeps[creepName].taskAssign(task);
+                        break;
+                    }
                 }
             }
-            if ( creepName && task ) {
-                task.assignmentCreate(Game.creeps[creepName]);
-                Game.creeps[creepName].taskAssign(task);
-            } else {
-                this.log('SPAWN: no creep is required');
+            if ( ! creepName ) {
+                //this.log('SPAWN: no creep is required');
                 break;
             }
         }
@@ -535,24 +535,25 @@ Room.prototype.getUnsavePostions = function() {
 // ########### OTHER SECTION ############################################
 Room.prototype.hasCreep = function(bodyType, setNoCreep) {
     if (this.noCreep === undefined)
-        this.noCreep = [];
+        this.noCreep = {};
     if (setNoCreep)
         this.noCreep[bodyType] = true;
-    return this.noCreep[bodyType] === undefined;
+if (this.name === "W13S37" && bodyType === 'BODY_DEFAULT'){ Logger.logDebug(bodyType);Logger.logDebug(this.noCreep);! Logger.logDebug(! this.noCreep[bodyType] );}
+    return ! this.noCreep[bodyType] ;
 };
 Room.prototype.hasCreepEmpty = function(bodyType, setNoCreep) {
     if (this.noCreepEmpty === undefined)
-        this.noCreepEmpty = [];
+        this.noCreepEmpty = {};
     if (setNoCreep)
         this.noCreepEmpty[bodyType] = true;
-    return this.noCreepEmpty[bodyType] === undefined;
+    return ! this.noCreepEmpty[bodyType] ;
 };
 Room.prototype.hasCreepFull = function(bodyType, setNoCreep) {
     if (this.noCreepFull === undefined)
-        this.noCreepFull = [];
+        this.noCreepFull = {};
     if (setNoCreep)
         this.noCreepFull[bodyType] = true;
-    return this.noCreepFull[bodyType] === undefined;
+    return ! this.noCreepFull[bodyType] ;
 };
 
 Room.prototype.resetFind = function(bodyType, setNoCreep) {

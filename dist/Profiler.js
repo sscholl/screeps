@@ -35,8 +35,9 @@ var Profiler = class Profiler {
             ROOM:          true,
             ROOMPOSITION:   true,
         };
-        Profiler.REPORT_INTERVALL = 10;
+        Profiler.REPORT_INTERVALL = 100;
         Profiler.REPORT_EMAIL = true;
+        Profiler.SCREEPS_GRAFANA = true;
     }
 
     /**
@@ -120,12 +121,16 @@ var Profiler = class Profiler {
                     msg = n + ': ' + timer.usage.toFixed(2) + ' s / ' + timer.count + ' = ' + timer.average.toFixed(2) + ' s ' + ' (' + timer.percentage.toFixed(2) + '%)';
                     msgMail += msg;
                     Logger.log(msg);
-                    Memory.stats["Profiler." + n + '.usage'] = timer.usage;
-                    Memory.stats["Profiler." + n + '.count'] = timer.count;
-                    Memory.stats["Profiler." + n + '.average'] = timer.average;
+                    
+                    if ( Profiler.SCREEPS_GRAFANA ) {
+                        //add stats for screeps-grafana
+                        Memory.stats["Profiler." + n + '.usage'] = timer.usage;
+                        Memory.stats["Profiler." + n + '.count'] = timer.count;
+                        Memory.stats["Profiler." + n + '.average'] = timer.average;
+                    }
                 }
             }
-            Game.notify(msgMail, 1);
+            if ( Profiler.REPORT_EMAIL ) Game.notify(msgMail, 1);
         }
     }
 
