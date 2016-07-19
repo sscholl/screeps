@@ -4,7 +4,6 @@ module.exports = function () {
 }
 
 Structure.prototype.isFull = function() {
-    console.log(this.energy >= this.energyCapacity);
     return this.energy >= this.energyCapacity;
 };
 

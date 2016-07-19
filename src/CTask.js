@@ -13,7 +13,7 @@ class CTask {
         if (CTask._init !== true) {
            CTask._init = true;
 
-           var methods = []; //['assignmentSearch'];
+           var methods = [];//['assignmentSearch'];
            for (var i in methods) {
                Profiler._.wrap('CTask', CTask, methods[i]);
                Logger._.wrap('CTask', CTask, methods[i]);
@@ -67,9 +67,9 @@ class CTask {
                 break;
             case 'TASK_BUILD':
                 this.bodyTypes = ['BODY_DEFAULT'];
-                this.energySource = false;
+                this.energySource = null;
                 var refill = this.getRoom().controllerRefill;
-                if (refill instanceof Structure && refill.pos.inRangeTo(this.getTarget().pos, 6)) this.bodyTypes.push('BODY_UPGRADER');
+                if (refill instanceof Structure && refill.pos.inRangeTo(this.getTarget().pos, 4)) this.bodyTypes.push('BODY_UPGRADER');
                 break;
             case 'TASK_REPAIR':
                 this.bodyTypes = ['BODY_DEFAULT'];
@@ -81,6 +81,21 @@ class CTask {
                 break;
             case 'TASK_MOVE':
                 this.bodyTypes = ['BODY_CARRIER', 'BODY_DEFAULT'];
+                this.energySource = null;
+                break;
+            case 'TASK_HARVEST_REMOTE':
+                this.bodyTypes = ['BODY_HARVESTER'];
+                this.energySource = null;
+                break;
+            case 'TASK_GATHER_REMOTE':
+                this.bodyTypes = ['BODY_CARRIER'];
+                this.energySource = true;
+                break;
+            case 'TASK_RESERVE_REMOTE':
+                this.bodyTypes = ['BODY_CLAIM'];
+                this.energySource = null;
+            case 'TASK_RESERVE':
+                this.bodyTypes = ['BODY_CLAIM'];
                 this.energySource = null;
                 break;
             default:
@@ -186,7 +201,7 @@ class CTask {
             switch (this.type) {
                 case 'TASK_HARVEST': this.prio = 50; break;
                 case 'TASK_COLLECT':
-                    if (this.getTarget().energy >= 100) this.prio = 65;
+                    if (this.getTarget().amount >= 100) this.prio = 65;
                     else this.prio = 60;
                 break;
                 case 'TASK_GATHER':  this.prio = 62; break;
@@ -194,7 +209,7 @@ class CTask {
                     if ( this.getTarget() instanceof StructureStorage || this.getTarget() instanceof StructureContainer ) {
                         this.prio = 15;
                     } else if (this.getTarget() instanceof StructureTower ) {
-                        this.prio = 30;
+                        this.prio = 40;
                     } else if (this.getTarget() instanceof Spawn ) {
                         if (this.getTarget().id === this.getRoom().memory.controllerRefillId) {
                             this.prio = 50;
@@ -210,6 +225,10 @@ class CTask {
                 case 'TASK_REPAIR':       this.prio = 40; break;
                 case 'TASK_FILLSTORAGE':  this.prio = 20; break;
                 case 'TASK_MOVE':         this.prio = 5; break;
+                case 'TASK_HARVEST_REMOTE':         this.prio = 47; break;
+                case 'TASK_GATHER_REMOTE':         this.prio = 46; break;
+                case 'TASK_RESERVE_REMOTE':         this.prio = 45; break;
+                case 'TASK_RESERVE':         this.prio = 50; break;
                 default:
                     this.logError('task type ' + type + ' not available.');
                     return;
@@ -277,6 +296,10 @@ class CTask {
             case 'TASK_REPAIR':       qty = creep.carry.energy;                    break;
             case 'TASK_FILLSTORAGE':  qty = 1;                                     break;
             case 'TASK_MOVE':         qty = 1;                                     break;
+            case 'TASK_HARVEST_REMOTE':         qty = 1;                                     break;
+            case 'TASK_GATHER_REMOTE':         qty = 1;                                     break;
+            case 'TASK_RESERVE_REMOTE':         qty = 1;                                     break;
+            case 'TASK_RESERVE':         qty = 1;                                     break;
             default:
                 this.logError("Can't assign task, type " + type + " not available.");
                 return;

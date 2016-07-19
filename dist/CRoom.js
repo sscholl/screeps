@@ -9,7 +9,7 @@ let CTask = require('CTask');
 module.exports = function () {
     if ( Room._initDebug !== true ) {
         Room._initDebug = true;
-        var methods = ['run', 'initSources', 'loadSources', 'loadStructures', 'loadConstructions', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
+        var methods = ['run'];//, 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
         for (var i in methods) {
             Profiler._.wrap('Room', Room, methods[i]);
             Logger._.wrap('Room', Room, methods[i]);
@@ -129,10 +129,12 @@ Room.prototype.run = function() {
         this.initTasksDynamic();
     }
 
-    var withHandshake = this.memory.timer % 15 == 0;
+    var withHandshake = this.memory.timer % 5== 0;
     this.assignTasks(withHandshake);
     this.linkAction();
     this.spawnAction();
+
+    this.towerAction();
 
     -- this.memory.timer;
 };
@@ -254,6 +256,38 @@ Room.prototype.linkAction = function() {
             }
         }
 };
+Room.prototype.towerAction = function () {
+    let enemies = this.find(FIND_HOSTILE_CREEPS);
+    var structuresNeedsRepair = this.find(FIND_STRUCTURES, {
+        filter: function(i) { return i.needsRepair(); }
+    });
+    for (var i in this.towers) {
+        if ( this.towers[i].energy > 0) {
+            if (enemies.length > 0 && enemies[0] instanceof Creep) {
+                this.towers[i].attack(enemies[0]);
+            } else if ( this.towers[i].energy > 500 && this.storage.store.energy > 10000) {
+                var structureLowest = undefined;
+                for (var j in structuresNeedsRepair) {
+                    var structure = structuresNeedsRepair[j];
+                    if ( structure instanceof Structure )
+                        if ( structure instanceof StructureWall || structure instanceof StructureRampart ) {
+                            if (structure.hits < 1000000) {
+                                if (structureLowest instanceof Structure) {
+                                    if (structure.hits < structureLowest.hits) structureLowest = structure;
+                                } else {
+                                    structureLowest = structure;
+                                }
+                            }
+                        } else {
+                            structureLowest = structure;
+                            break;
+                        }
+                }
+                if (structureLowest instanceof Structure) this.towers[i].repair(structureLowest);
+            }
+        }
+    }
+};
 // ########### CONSTRUCTION SECTION ###########################################
 Room.prototype.initDynamicConstructions = function() {
     this.memory.constructionIds = [];
@@ -314,8 +348,11 @@ Room.prototype.creepsHarvesterCnt = function() {
     var tasks = this.getTasks();
     for ( var i in tasks.collection )
         if ( tasks.collection[i].getType() === 'TASK_HARVEST' ) {
-            cnt += Math.min(tasks.collection[i].getQty() / 2, tasks.collection[i].getCnt());
+            //this.log(tasks.collection[i].getCode() + ": " + tasks.collection[i].getQtyAssigned() + "/" + tasks.collection[i].getQty() + ' ' + tasks.collection[i].getAssignmentsCnt() + '/' + tasks.collection[i].getCnt());
+            cnt ++;
+            if (tasks.collection[i].getQty() - tasks.collection[i].getQtyAssigned() && tasks.collection[i].getCnt() >= 2) cnt ++;
         }
+    if (  this.creepsCarrier.length < this.creepsCarrierCnt() ) return this.creepsHarvester.length;
     return cnt;
 };
 /**
@@ -365,6 +402,7 @@ Room.prototype.getCreepsUpgraderCnt = function() {
 Room.prototype.spawnAction = function() {
     for (var spawnId in this.spawns) {
         var spawn = this.spawns[spawnId];
+        if (spawn.spawning) continue;
 
         if ( this.creepsDefault.length >= this.creepsRequired()
             && this.creepsHarvester.length < this.creepsHarvesterCnt()
@@ -379,19 +417,35 @@ Room.prototype.spawnAction = function() {
             spawn.spawnCarrierTiny();
         } else if ( this.creepsCarrier.length < this.creepsCarrierCnt() ) {
             spawn.spawnCarrier();
-        } else if ( this.creepsHealer.length < 2
+        } else if ( this.creepsHealer.length < 0
             && this.extensions.length >= 20
             && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnHealer();
-        } else if ( this.creepsRanger.length < 4
+        } else if ( this.creepsRanger.length < 1
             && this.extensions.length >= 20
             && this.energyAvailable >= this.energyCapacityAvailable
         ) {
             spawn.spawnRanger();
-        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt() || (this.isEnergyMax() && this.controllerRefill instanceof Structure && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 5) ) { // spawn another upgrader, because has to many energy
+        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt()
+            || (this.isEnergyMax() && this.controllerRefill instanceof Structure
+            && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 5)
+        ) { // spawn another upgrader, because has to many energy
             spawn.spawnUpgrader();
         } else {
+            // TODO: rework with task based spawner
+            var tasks = this.getTasks();
+            for ( var i in tasks.collection ) {
+                if ( tasks.collection[i].getType() === 'TASK_HARVEST_REMOTE' ) {
+                    if ( tasks.collection[i].getQty() > tasks.collection[i].getQtyAssigned() )
+                        var creepName = spawn.spawnHarvester();
+//                        task.assignmentCreate(Game.creeps[creepName]);
+//                        Game.creeps[creepName].taskAssign(task);
+                } else if ( tasks.collection[i].getType() === 'TASK_GATHER_REMOTE' ) {
+                    if ( tasks.collection[i].getQty() > tasks.collection[i].getQtyAssigned() )
+                        var creepName = spawn.spawnCarrier();
+                }
+            }
             this.log('SPAWN: no creep is required');
         }
         break; // todo: multispawn problem quickfix
@@ -400,23 +454,30 @@ Room.prototype.spawnAction = function() {
 
 Room.prototype.hasEnergy = function(e) {
     return this.energyAvailable >= e;
-}
+};
 Room.prototype.hasEnergyCapacity = function(e) {
     return this.energyCapacityAvailable >= e;
-}
+};
+Room.prototype.hasEnergyCapacitySave = function(e) {
+    return this.hasEnergy(800) || (this.hasEnergyCapacity(800) && this.hasBasicInfrastructure());
+};
 Room.prototype.isEnergyMax = function(e) {
     return this.energyCapacityAvailable === this.energyAvailable;
-}
+};
+Room.prototype.hasBasicInfrastructure = function(e) {
+    return this.creepsHarvester.length >= 1 && this.creepsCarrier.length >= 1;
+};
 
 // ########### HOSTILE SECTION ###########################################
 Room.prototype.getHostileCreeps = function() {
     if (this.hostileCreeps === undefined) {
         var opts = {};
-        opts.filter = function(object) { return object.owner.username !== 'NhanHo';}
+        //opts.filter = function(object) { return object.owner.username !== 'NhanHo';}
         this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS, opts);
         for (var i in this.hostileCreeps) {
             var c = this.hostileCreeps[i];
-            if (c.owner.username !== 'Source Keeper') {
+            if (c.owner.username !== 'Source Keeper' && c.owner.username !== 'Invader' && this.controller && this.controller.my) {
+                this.log("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
                 Game.notify("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
             }
         }

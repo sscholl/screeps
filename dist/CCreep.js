@@ -8,7 +8,7 @@ let CTask = require('CTask');
 module.exports = function () {
     if ( Creep._initDebug !== true ) {
         Creep._initDebug = true;
-        var methods = ['fillStructure', 'taskDisassign', 'taskUpgrade'];
+        var methods = [];//['fillStructure', 'taskDisassign', 'taskUpgrade', 'taskBuild'];
         for (var i in methods) {
             Profiler._.wrap('Creep', Creep, methods[i]);
             Logger._.wrap('Creep', Creep, methods[i]);
@@ -64,9 +64,21 @@ Object.defineProperty(Creep.prototype, "taskCodes", {
     },
 });
 
+/**
+ * add getter and setter for master task code
+ */
+Object.defineProperty(Creep.prototype, "taskMasterCode", {
+    get: function taskCodes() {
+        return this.memory.taskMasterCode;
+    },
+    set: function taskCodes(v) {
+        this.memory.taskMasterCode = v;
+    },
+});
+
 // ########### GENERAL SECTION #########################################
 
-Creep.prototype.run = function() {
+Creep.prototype.run = function () {
     if      (this.bodyType === 'BODY_DEFAULT')      this.runDefault();
     else if (this.bodyType === 'BODY_HARVESTER')    this.runDefault();
     else if (this.bodyType === 'BODY_UPGRADER')     this.runDefault();
@@ -79,7 +91,7 @@ Creep.prototype.run = function() {
 
 // ########### MOVE SECTION ###########################################
 
-Creep.prototype.movePredefined = function(targetPos, opts = {}, range = 1) {
+Creep.prototype.movePredefined = function (targetPos, opts = {}, range = 1) {
     if ( range === 0 || ! this.pos.inRangeTo(targetPos, range)) {
         opts.reusePath = 6;
         opts.avoid = this.room.getUnsavePostions();
@@ -95,11 +107,11 @@ Creep.prototype.movePredefined = function(targetPos, opts = {}, range = 1) {
     }
 }
 
-Creep.prototype.getBodyType = function() {
+Creep.prototype.getBodyType = function () {
     return this.bodyType;
 }
 
-Creep.prototype.getBodyPartCnt = function(type) {
+Creep.prototype.getBodyPartCnt = function (type) {
     var cnt = 0;
     for (var i in this.body)
         if (this.body[i].type === type && this.body[i].hits > 0)
@@ -107,7 +119,7 @@ Creep.prototype.getBodyPartCnt = function(type) {
     return cnt;
 }
 
-Creep.prototype.moveAround = function() {
+Creep.prototype.moveAround = function () {
     if (this.pos.x === 1)  this.move(RIGHT);
     else if (this.pos.x === 48) this.move(LEFT);
     else if (this.pos.y === 1)  this.move(BOTTOM);
@@ -115,21 +127,21 @@ Creep.prototype.moveAround = function() {
     else this.move(Game.time % 8 + 1);
 }
 
-Creep.prototype.moveRandom = function() {
+Creep.prototype.moveRandom = function () {
     this.move(Math.floor(Math.random() * 8) % 8 + 1);
 }
 
-Creep.prototype.flee = function(range) {
+Creep.prototype.flee = function (range) {
     let enemies = this.room.find(FIND_HOSTILE_CREEPS);
     //console.log(this,'fleeing')
-    let avoid = _.map(enemies,function(t) {return {'pos':t.pos,'range':range};});
+    let avoid = _.map(enemies,function (t) {return {'pos':t.pos,'range':range};});
     let res = PathFinder.search(this.pos,avoid,{flee:true,plainCost:2,swampCost:10,maxOps:2500*2});
     this.moveTo(res.path[0]);
 };
 
 // ########### ENERGY SECTION ###########################################
 
-Creep.prototype.fillOnStructure = function(structure) {
+Creep.prototype.fillOnStructure = function (structure) {
     var r = -99;
     if ( structure instanceof StructureSpawn ) {
         this.movePredefined(structure.pos);
@@ -147,7 +159,7 @@ Creep.prototype.fillOnStructure = function(structure) {
     return r;
 }
 
-Creep.prototype.fillStructure = function(structure) {
+Creep.prototype.fillStructure = function (structure) {
     var r = -99;
     if ( structure instanceof StructureStorage || structure instanceof StructureLink || structure instanceof StructureSpawn || structure instanceof StructureExtension || structure instanceof StructureTower ) {
         this.movePredefined(structure.pos);
@@ -159,17 +171,17 @@ Creep.prototype.fillStructure = function(structure) {
 }
 
 // ########### LOGGING SECTION ############################################
-Creep.prototype.log = function(message) {
+Creep.prototype.log = function (message) {
     Logger.log('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
 }
-Creep.prototype.logError = function(message) {
+Creep.prototype.logError = function (message) {
     Logger.logError('[' + this.room.name + '] ' + '[' + this.name + '] ' + message);
 }
 
 
 // ########### DEFAULT SECTION ############################################
 
-Creep.prototype.runDefault = function() {
+Creep.prototype.runDefault = function () {
     if (
         this.memory.phase === undefined
         || this.memory.phase === 'PHASE_SEARCH'
@@ -179,7 +191,16 @@ Creep.prototype.runDefault = function() {
     }
 
     if (this.memory.phase === 'PHASE_SEARCH') {
-        this.moveAround();
+        if ( this.energy < 50 && (this.bodyType === 'BODY_DEFAULT' || this.bodyType === 'BODY_DEFAULT' || this.bodyType === 'BODY_DEFAULT') ) {
+            this.fillOnStructure(this.room.controllerRefill);
+        } else {
+            var collectionPoint = Game.flags[this.room.name];
+            if (collectionPoint) {
+                this.movePredefined(collectionPoint.pos, {}, 0);
+            } else {
+                this.moveAround();
+            }
+        }
     }
     if (this.memory.phase === 'PHASE_TASK') {
         //this.say(this.getCurrentTask().getType());
@@ -193,6 +214,10 @@ Creep.prototype.runDefault = function() {
             case 'TASK_REPAIR':       this.taskRepair();   break;
             case 'TASK_FILLSTORAGE':  this.taskFillStorage();   break;
             case 'TASK_MOVE':         this.taskMove();   break;
+            case 'TASK_HARVEST_REMOTE':
+            case 'TASK_GATHER_REMOTE':
+            case 'TASK_RESERVE_REMOTE':  this.taskMove();   break;
+            case 'TASK_RESERVE':         this.taskReserve();   break;
             default:
                 this.logError("task type " + this.getCurrentTask().getType() + " not available");
                 return;
@@ -200,11 +225,11 @@ Creep.prototype.runDefault = function() {
     }
 };
 
-Creep.prototype.getCurrentTask = function() {
+Creep.prototype.getCurrentTask = function () {
     while ( ! this.task && this.taskCodes.length > 0 ) {
         if ( _.isString(this.taskCodes[0]) ) {
             this.task = this.room.getTasks().collection[this.taskCodes[0]];
-            if ( !(this.task instanceof CTask) ) {
+            if ( ! (this.task instanceof CTask) ) {
                 this.moveAround();
                 this.taskDisassign();
                 this.logError("task " + this.taskCodes[0] + " not available");
@@ -216,18 +241,20 @@ Creep.prototype.getCurrentTask = function() {
     return this.task;
 };
 
-Creep.prototype.taskAssign = function(task) {
-    this.taskCodes.push(task.getCode());
+Creep.prototype.taskAssign = function (task) {
+    this.taskCodes = new Array(task.getCode()).concat(this.taskCodes);
     this.memory.phase = 'PHASE_TASK';
+    if (task.getType() === 'TASK_HARVEST_REMOTE' || task.getType() === 'TASK_GATHER_REMOTE' || task.getType() === 'TASK_RESERVE_REMOTE') {
+        this.taskMaster();
+    }
 };
 
-Creep.prototype.taskDisassign = function(task) {
+Creep.prototype.taskDisassign = function (task) {
     if (task instanceof CTask) {
         task.assignmentDelete(this.name);
         var i = this.taskCodes.indexOf(task.getCode());
         if (i >= 0) delete this.taskCodes[i];
-    } else {
-        // delete first task
+    } else { // delete first task
         this.taskCodes.shift();
     }
     if ( this.taskCodes.length === 0) {
@@ -236,16 +263,23 @@ Creep.prototype.taskDisassign = function(task) {
     delete this.task;
 };
 
-Creep.prototype.hasTask = function(task) {
-    if (   this.memory.phase !== 'PHASE_TASK'
-        || this.taskCodes.indexOf(task.getCode()) === -1
-    ) {
-        return false;
+Creep.prototype.taskMaster = function (task) {
+    if (task instanceof CTask) {
+        this.taskMasterCode = task.getCode();
+    } else if (this.taskCodes.length) {
+        this.taskMasterCode = this.taskCodes[0];
     }
-    return true;
 };
 
-Creep.prototype.taskHarvest = function() {
+Creep.prototype.hasTask = function (task) {
+    if (task.getType() === 'TASK_HARVEST_REMOTE' || task.getType() === 'TASK_GATHER_REMOTE') {
+        this.log();
+        Logger.logDebug(this.taskCodes.indexOf(task.getCode()) !== -1 || (this.taskMasterCode === task.getCode() && this.room.name !== task.pos.roomName));
+    }
+    return this.taskCodes.indexOf(task.getCode()) !== -1 || (this.taskMasterCode === task.getCode() && this.room.name !== task.pos.roomName);
+};
+
+Creep.prototype.taskHarvest = function () {
     if (this.bodyType === 'BODY_DEFAULT' && this.carry.energy >= this.carryCapacity) {
         this.taskDisassign();
         return;
@@ -267,13 +301,13 @@ Creep.prototype.taskHarvest = function() {
     }
 };
 
-Creep.prototype.taskCollect = function() {
+Creep.prototype.taskCollect = function () {
     if (this.carry.energy >= this.carryCapacity) {
         this.taskDisassign();
         return;
     }
     var target = this.getCurrentTask().getTarget();
-    if (target) {
+    if (target instanceof Energy) {
         this.movePredefined(target.pos);
         if (this.pos.inRangeTo(target.pos, 1)) {
             this.pickup(target);
@@ -286,13 +320,13 @@ Creep.prototype.taskCollect = function() {
     }
 };
 
-Creep.prototype.taskGather = function() {
+Creep.prototype.taskGather = function () {
     if (this.carry.energy >= this.carryCapacity) {
         this.taskDisassign();
         return;
     }
     var target = this.getCurrentTask().getTarget();
-    if (target) {
+    if (target instanceof Creep) {
         this.movePredefined(target.pos);
         if (this.pos.inRangeTo(target.pos, 1)) {
             target.transfer(this,RESOURCE_ENERGY);
@@ -307,7 +341,7 @@ Creep.prototype.taskGather = function() {
     }
 };
 
-Creep.prototype.taskDeliver = function() {
+Creep.prototype.taskDeliver = function () {
     if (this.carry.energy <= 0) {
         this.taskDisassign();
         return;
@@ -319,6 +353,7 @@ Creep.prototype.taskDeliver = function() {
             case STRUCTURE_STORAGE:
             case STRUCTURE_CONTAINER:
                 cur = target.store.energy; max = target.storeCapacity; break;
+            case STRUCTURE_TOWER:
             case STRUCTURE_EXTENSION:
             case STRUCTURE_SPAWN:
             case STRUCTURE_LINK:
@@ -334,7 +369,7 @@ Creep.prototype.taskDeliver = function() {
             this.taskDisassign();
         } else if (this.carry.energy >= max - cur + 50) {
             var exts = this.pos.findInRange(FIND_MY_STRUCTURES, 1, {
-                filter: function(object) {return object.structureType == STRUCTURE_EXTENSION && object.energy != object.energyCapacity;}
+                filter: function (object) {return object.structureType == STRUCTURE_EXTENSION && object.energy != object.energyCapacity;}
             });
             if (exts.length && exts[0]) {
                 var result = this.transfer(exts[0],RESOURCE_ENERGY);
@@ -351,14 +386,15 @@ Creep.prototype.taskDeliver = function() {
     }
 };
 
-Creep.prototype.taskUpgrade = function() {
+Creep.prototype.taskUpgrade = function () {
     if ( this.bodyType !== 'BODY_UPGRADER' && this.carry.energy <= 0 ) {
         this.taskDisassign();
         return;
     }
     var target = this.getCurrentTask().getTarget();
     if ( target instanceof StructureController ) {
-        if ( this.bodyType === 'BODY_UPGRADER' && this.carry.energy < 25) {
+        // Creep uses 1 Energy per WORK body Part
+        if ( this.bodyType === 'BODY_UPGRADER' && this.carry.energy < this.getActiveBodyparts(WORK) * 2 ) {
             var r = this.fillOnStructure(this.room.controllerRefill);
             if ( r !== OK && r !== ERR_NOT_IN_RANGE )  this.taskDisassign();
         } else {
@@ -372,23 +408,29 @@ Creep.prototype.taskUpgrade = function() {
     }
 };
 
-Creep.prototype.taskBuild = function() {
-    if ( this.bodyType !== 'BODY_UPGRADER' && this.carry.energy <= 0 ) {
-        this.taskDisassign();
-        return;
-    }
+Creep.prototype.taskBuild = function () {
+//    if ( this.bodyType !== 'BODY_UPGRADER' && this.carry.energy <= 0 ) {
+//        this.taskDisassign();
+//        return;
+//    }
     var target = this.getCurrentTask().getTarget();
     if (target instanceof ConstructionSite) {
-        if ( this.bodyType === 'BODY_UPGRADER' && this.carry.energy < 25) {
+        if ( this.carry.energy <= 0) {
             var r = this.fillOnStructure(this.room.controllerRefill);
-            if ( r !== OK && r !== ERR_NOT_IN_RANGE )  this.taskDisassign();
+            if ( r !== OK || this.room.controllerRefill.isEmpty() )  this.taskDisassign();
+            else return;
         } else {
             this.movePredefined(target, {}, 3);
         }
-        var r = this.build(target);
-        if (r !== OK && r !== ERR_NOT_IN_RANGE) {
-            this.logError(this.name + " can't build " + r);
-            if (r === ERR_NO_BODYPART) this.movePredefined(this.room.defaultSpawn.pos);
+        var construction = this.pos.findInRange(this.room.constructions, 3);
+        if (construction instanceof ConstructionSite && construction.structureType === STRUCTURE_WALL && construction.structureType === STRUCTURE_ROAD && construction.structureType === STRUCTURE_RAMPART) {
+            var r = this.build(construction);
+        } else {
+            var r = this.build(target);
+            if (r !== OK && r !== ERR_NOT_IN_RANGE) {
+                this.logError(this.name + " can't build " + r);
+                if (r === ERR_NO_BODYPART) this.movePredefined(this.room.defaultSpawn.pos);
+            }
         }
     } else {
         this.logError("target construction site not valid");
@@ -397,7 +439,7 @@ Creep.prototype.taskBuild = function() {
     }
 };
 
-Creep.prototype.taskRepair = function() {
+Creep.prototype.taskRepair = function () {
     if (this.carry.energy <= 0) {
         this.taskDisassign();
         return;
@@ -422,7 +464,7 @@ Creep.prototype.taskRepair = function() {
     }
 };
 
-Creep.prototype.taskFillStorage = function() {
+Creep.prototype.taskFillStorage = function () {
     var link = this.getCurrentTask().getTarget();
     if (link instanceof StructureLink && this.room.storage instanceof StructureStorage) {
         if (this.carry.energy > 0) {
@@ -455,11 +497,11 @@ Creep.prototype.taskFillStorage = function() {
     }
 };
 
-Creep.prototype.taskMove = function() {
+Creep.prototype.taskMove = function () {
     var pos = this.getCurrentTask().getPos();
+    if (pos instanceof RoomObject) pos = pos.pos;
     if (pos instanceof RoomPosition) {
         if (pos === this.pos) {
-            //this.getCurrentTask().delete();
             this.taskDisassign();
         } else {
             if (pos.roomName === this.room.name) {
@@ -470,6 +512,24 @@ Creep.prototype.taskMove = function() {
         }
     } else {
         this.logError("room pos not valid");
+        this.getCurrentTask().delete();
+        this.taskDisassign();
+    }
+};
+
+Creep.prototype.taskReserve = function () {
+    if ( this.bodyType !== 'BODY_CLAIM' ) {
+        this.taskDisassign();
+        return;
+    }
+    var target = this.getCurrentTask().getTarget();
+    if ( target instanceof StructureController ) {
+        this.movePredefined(target, {}, 1);
+        var r = this.reserveController(target);
+        if ( r !== OK )
+            this.logError(this.name + " can't reserve " + result);
+    } else {
+        this.logError("target controller not valid for claim");
         this.getCurrentTask().delete();
         this.taskDisassign();
     }

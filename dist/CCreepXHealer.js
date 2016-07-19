@@ -6,7 +6,7 @@ let Logger = require('Logger');
 module.exports = function () {
     if ( Creep._initDebugHealer !== true ) {
         Creep._initDebugHealer = true;
-        var methods = ['runHealer'];
+        var methods = []; //['runHealer'];
         for (var i in methods) {
             Profiler._.wrap('Creep', Creep, methods[i]);
             Logger._.wrap('Creep', Creep, methods[i]);
@@ -55,7 +55,7 @@ Creep.prototype.runHealer = function() {
            this.movePredefined(guard);
        this.memory.currentTargetId = guard.id;
     } else {
-        var collectionPoint = Game.flags[this.room.name];
+        var collectionPoint = Game.flags[this.room.name + '_M'];
         if (collectionPoint) {
           this.movePredefined(collectionPoint.pos, {}, 0);
         } else {

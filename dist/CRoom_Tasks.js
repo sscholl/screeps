@@ -26,7 +26,7 @@ Room.prototype.getTasks = function() {
 }
 
 Room.prototype.initTasksStatic = function() {
-    for (var id in this.sources) {
+    for ( var id in this.sources ) {
         var source = this.sources[id];
         if (source.getMemory().isSave) {
             this.createTask(
@@ -38,13 +38,22 @@ Room.prototype.initTasksStatic = function() {
             );
         }
     }
-    if (this.controller instanceof Structure && this.controller.my) {
-        this.createTask(
-            'TASK_UPGRADE',
-            this.controller.id,
-            this.controller.pos,
-            9//this.controller.pos.getSpotsCnt()
-        );
+    if ( this.controller instanceof Structure ) {
+        if ( this.controller.my ) {
+            this.createTask(
+                'TASK_UPGRADE',
+                this.controller.id,
+                this.controller.pos,
+                9//this.controller.pos.getSpotsCnt()
+            );
+        } else {
+            this.createTask(
+                'TASK_RESERVE',
+                this.controller.id,
+                this.controller.pos,
+                1, 1
+            );
+        }
     } else {
         if (!this.defaultSpawn) {
             //No claimed controller
@@ -72,11 +81,9 @@ Room.prototype.initTasksDynamic = function() {
     }
     for (var i in this.energy) {
         var energy = this.energy[i];
-
-Logger.logDebug(gatherEnergy);
-Logger.logDebug(energy.pos);
-Logger.logDebug(gatherEnergy.indexOf(energy.pos));
-        if(gatherEnergy.indexOf(energy.pos) !== -1)
+        var found = false;
+        for (var j in gatherEnergy) if (gatherEnergy.x === energy.pos.x && gatherEnergy.y === energy.pos.y ) found = true;
+        if( ! found )
             this.createTask(
                     'TASK_COLLECT',
                     energy.id,
@@ -145,6 +152,29 @@ Logger.logDebug(gatherEnergy.indexOf(energy.pos));
                 );
             }
         }
+        if ( this.controller.level >= 2 ) {
+            var flags = this.find(FIND_FLAGS, { filter: { color: COLOR_YELLOW } });
+            for ( var i in flags ) {
+                this.createTask(
+                    'TASK_HARVEST_REMOTE',
+                    flags[i].id,
+                    flags[i].pos,
+                    1, 1
+                );
+                this.createTask(
+                    'TASK_GATHER_REMOTE',
+                    flags[i].id,
+                    flags[i].pos,
+                    1, 1
+                );
+                this.createTask(
+                    'TASK_RESERVE_REMOTE',
+                    flags[i].id,
+                    flags[i].pos,
+                    1, 1
+                );
+            }
+        }
     }
 }
 
@@ -167,7 +197,7 @@ Room.prototype.initTasksDynamic2 = function() {
     });
     for (var i in structuresNeedsRepair) {
         var structure = structuresNeedsRepair[i];
-        if (structure instanceof Structure) {
+        if (structure instanceof Structure && ! structure instanceof StructureWall && ! structure instanceof StructureRampart ) {
             this.createTask(
                     'TASK_REPAIR',
                     structure.id,
@@ -194,9 +224,9 @@ Room.prototype.assignTasks = function(withHandshake) {
                 var assignments = task.getAssignments();
                 for (var creepName in assignments) {
                     var creep = Game.creeps[creepName];
-                    if ( !creep ) {
+                    if ( ! creep ) {
                         task.assignmentDelete(creepName);
-                    } else if (!creep.hasTask(task)) {
+                    } else if ( ! creep.hasTask(task) ) {
                         task.assignmentDelete(creepName);
                         creep.taskDisassign(task);
                     }
@@ -207,6 +237,7 @@ Room.prototype.assignTasks = function(withHandshake) {
                 if (creep instanceof Creep) {
                     task.assignmentCreate(creep);
                     creep.taskAssign(task);
+                    Logger.log("creep " + creep.name + " found for task " + taskList[i]);
                 } else {
                     //Logger.log("no creep found for task " + taskList[i]);
                     break;
