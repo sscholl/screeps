@@ -4,11 +4,18 @@ module.exports = function () {
 }
 
 Structure.prototype.isFull = function() {
-    return this.energy >= this.energyCapacity;
+    if (this.store) return this.store.energy >= this.storeCapacity;
+    else            return this.energy >= this.energyCapacity;
 };
 
 Structure.prototype.isEmpty = function() {
-    return this.energy <= 0;
+    if (this.store) return this.store.energy <= 0;
+    else            return this.energy <= 0;
+};
+
+Structure.prototype.getEnergyPercentage = function(name) {
+    if (this.store) return this.store.energy / this.storeCapacity;
+    else            return this.energy / this.energyCapacity;
 };
 
 Structure.prototype.needsRepair = function(max = false) {
@@ -17,11 +24,4 @@ Structure.prototype.needsRepair = function(max = false) {
         return this.hits < v;
     }
     return this.hits < this.hitsMax * ( max ? 1 : 0.95);
-};
-
-Structure.prototype.getEnergyPercentage = function(name) {
-    if (this.store)
-        return this.store.energy / this.storeCapacity;
-    else
-        return this.energy / this.energyCapacity;
 };

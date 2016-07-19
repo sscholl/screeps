@@ -9,7 +9,7 @@ let CTask = require('CTask');
 module.exports = function () {
     if ( Room._initDebug !== true ) {
         Room._initDebug = true;
-        let methods = ['run', 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'towerAction', 'spawnAction']; 
+        let methods = ['run', 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'towerAction', 'spawnAction'];
         for ( let i in methods ) {
             Profiler._.wrap('Room', Room, methods[i]);
             Logger._.wrap('Room', Room, methods[i]);
@@ -193,7 +193,7 @@ Room.prototype.initSources = function() {
 }
 Room.prototype.loadSources = function() {
     this.sources = {};
-    for (var id in this.memory.sources) {
+    for (let id in this.memory.sources) {
         this.sources[id] = Game.getObjectById(id);
     }
 
@@ -207,7 +207,7 @@ Room.prototype.initDynamicSources = function() {
     this.memory.sourcesSaveCount = 0;
     this.memory.sourceSpotCount = 0;
     for (let id in this.sources) {
-        var source = this.sources[id];
+        let source = this.sources[id];
         if (source instanceof Source) {
             source.memory.isSave = ! source.memory.hasHostileSpawn;
             if (source.memory.isSave) {
@@ -225,7 +225,7 @@ Room.prototype.initDynamicSources = function() {
 Room.prototype.initDynamicStructures = function() {
     this.memory.extensionIds = [];
     this.extensions = this.find( FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_EXTENSION}} );
-    for (var i in this.extensions) {
+    for (let i in this.extensions) {
         if (this.extensions[i] instanceof StructureExtension) {
             this.memory.extensionIds[i] = this.extensions[i].id;
         } else {
@@ -238,25 +238,25 @@ Room.prototype.initDynamicStructures = function() {
         if ( this.storage instanceof StructureStorage && this.controller.pos.inRangeTo(this.storage, 4) ) {
             this.memory.controllerRefillId = this.storage.id;
         } else {
-            var containers = this.controller.pos.findInRange( FIND_STRUCTURES, 4, {filter: {structureType: STRUCTURE_CONTAINER}} );
+            let containers = this.controller.pos.findInRange( FIND_STRUCTURES, 4, {filter: {structureType: STRUCTURE_CONTAINER}} );
             if (containers.length > 0 && containers[0] instanceof StructureContainer) {
                 this.memory.controllerRefillId = containers[0].id;
             } else {
-                var spawns = this.controller.pos.findInRange( FIND_MY_STRUCTURES, 4, {filter: {structureType: STRUCTURE_SPAWN}} );
+                let spawns = this.controller.pos.findInRange( FIND_MY_STRUCTURES, 4, {filter: {structureType: STRUCTURE_SPAWN}} );
                 if (spawns.length > 0 && spawns[0] instanceof StructureSpawn)
                     this.memory.controllerRefillId = spawns[0].id;
             }
         }
 
     if (this.storage instanceof StructureStorage) {
-        var links = this.storage.pos.findInRangeLink(2);
+        let links = this.storage.pos.findInRangeLink(2);
         if (links[0] !== undefined) this.memory.storageLinkId = links[0].id;
     }
 }
 Room.prototype.loadStructures = function() {
     this.extensions = [];
-    for (var i in this.memory.extensionIds) {
-        var extensionId = this.memory.extensionIds[i];
+    for (let i in this.memory.extensionIds) {
+        let extensionId = this.memory.extensionIds[i];
         this.extensions[i] = Game.getObjectById(extensionId);
     }
     if (this.memory.storageLinkId !== undefined) {
@@ -287,15 +287,15 @@ Room.prototype.linkAction = function() {
 };
 Room.prototype.towerAction = function () {
     if ( ! this.towers.length ) return;
-    
-    var damagedCreep = this.find(FIND_MY_CREEPS, {
+
+    let damagedCreep = this.find(FIND_MY_CREEPS, {
         filter: function(object) {return object !== this && object.hits < object.hitsMax;}
     });
     let enemies = this.find(FIND_HOSTILE_CREEPS);
-    var structuresNeedsRepair = this.find(FIND_STRUCTURES, {
+    let structuresNeedsRepair = this.find(FIND_STRUCTURES, {
         filter: function(i) { return i.needsRepair(); }
     });
-    for (var i in this.towers) {
+    for (let i in this.towers) {
         if ( this.towers[i].energy > 0) {
             let r = OK;
             if (damagedCreep.length > 0 && damagedCreep[0] instanceof Creep && damagedCreep[0].ticksToLive > 50) {
@@ -303,9 +303,9 @@ Room.prototype.towerAction = function () {
             } else if (enemies.length > 0 && enemies[0] instanceof Creep) {
                 r = this.towers[i].attack(enemies[0]);
             } else if ( this.towers[i].energy > 500 && (( this.storage instanceof StructureStorage && this.storage.store.energy > 10000 ) || ! (this.storage instanceof StructureStorage )) ) {
-                var structureLowest = undefined;
-                for (var j in structuresNeedsRepair) {
-                    var structure = structuresNeedsRepair[j];
+                let structureLowest = undefined;
+                for (let j in structuresNeedsRepair) {
+                    let structure = structuresNeedsRepair[j];
                     if ( structure instanceof Structure )
                         if ( structure instanceof StructureWall || structure instanceof StructureRampart ) {
                             if (structureLowest instanceof Structure) {
@@ -331,12 +331,12 @@ Room.prototype.initDynamicConstructions = function() {
     this.memory.constructionIds = [];
 
     this.constructions = this.find(FIND_CONSTRUCTION_SITES);
-    for (var i in this.constructions)
+    for (let i in this.constructions)
         this.memory.constructionIds[i] = this.constructions[i].id;
 };
 Room.prototype.loadConstructions = function() {
     this.constructions = [];
-    for (var i in this.memory.constructionIds) {
+    for (let i in this.memory.constructionIds) {
         this.constructions[i] = (Game.getObjectById(this.memory.constructionIds[i]));
     }
 };
@@ -438,20 +438,20 @@ Room.prototype.spawnAction = function() {
         let tasks = this.getTasks();
         let creepName = false;
         let task = false;
-        for ( let i of tasks.list ) {
-            task = tasks.collection[i];
-if (! (task instanceof CTask) || !task.valid() ) {Logger.logDebug(i);Logger.logDebug(task);}
+        for ( let code of tasks.list ) {
+            task = tasks.collection[code];
             if (
-                task.getQty() > task.getQtyAssigned()
-                && task.getCnt() > task.getAssignmentsCnt()
+                task.qty > task.qtyAssigned
+                && task.cnt > task.assignmentsCnt
             ) {
-                switch ( task.getType() ) {
+                switch ( task.type ) {
                     case 'TASK_HARVEST':        creepName = spawn.spawnHarvester(); break;
-                    case 'TASK_UPGRADE':        creepName = spawn.spawnUpgrader(undefined, undefined, task.getQty()); break;
+                    case 'TASK_UPGRADE':        if ( this.defaultSpawn.id === spawn.id &&  task.qty - task.qtyAssigned > 2 ) creepName = spawn.spawnUpgrader(undefined, undefined, task.qty); break;
                     case 'TASK_GATHER':         creepName = spawn.spawnCarrier(); break;
-                    case 'TASK_BUILD':          creepName = spawn.spawnDefault(undefined, undefined, task.getQty()); break;
+                    case 'TASK_REPAIR':
+                    case 'TASK_BUILD':          creepName = spawn.spawnDefault(undefined, undefined, 10); break;
                     case 'TASK_FILLSTORAGE':    creepName = spawn.spawnCarrierTiny(); break;
-                    case 'TASK_GUARD':          creepName = spawn.spawnRanger(undefined, undefined, task.getQty()); break;
+                    case 'TASK_GUARD':          creepName = spawn.spawnRanger(undefined, undefined, task.qty); break;
                 }
                 if ( creepName ) {
                     task.assignmentCreate(Game.creeps[creepName]);
@@ -461,18 +461,18 @@ if (! (task instanceof CTask) || !task.valid() ) {Logger.logDebug(i);Logger.logD
             }
         }
         if ( ! creepName ) {
-            for ( var i of tasks.list ) {
-                task = tasks.collection[i];
+            for ( let code of tasks.list ) {
+                task = tasks.collection[code];
                 if (
-                    task.getQty() > task.getQtyAssigned()
-                    && task.getCnt() > task.getAssignmentsCnt()
+                    task.qty > task.qtyAssigned
+                    && task.cnt > task.assignmentsCnt
                 ) {
-                    switch ( task.getType() ) {
+                    switch ( task.type ) {
                         case 'TASK_HARVEST_REMOTE': creepName = spawn.spawnHarvester(); break;
                         case 'TASK_GATHER_REMOTE':  creepName = spawn.spawnCarrier(); break;
-                        case 'TASK_BUILD_REMOTE':   creepName = spawn.spawnDefault(undefined, undefined, task.getQty()); break;
-                        case 'TASK_RESERVE_REMOTE': creepName = spawn.spawnClaim(undefined, undefined, task.getQty()); break;
-                        case 'TASK_GUARD_REMOTE':   creepName = spawn.spawnRanger(undefined, undefined, task.getQty()); break;
+                        case 'TASK_BUILD_REMOTE':   creepName = spawn.spawnDefault(undefined, undefined, task.qty); break;
+                        case 'TASK_RESERVE_REMOTE': creepName = spawn.spawnClaim(undefined, undefined, task.qty); break;
+                        case 'TASK_GUARD_REMOTE':   creepName = spawn.spawnRanger(undefined, undefined, task.qty); break;
                     }
                     if ( creepName ) {
                         task.assignmentCreate(Game.creeps[creepName]);
@@ -508,10 +508,10 @@ Room.prototype.hasBasicInfrastructure = function(e) {
 // ########### HOSTILE SECTION ###########################################
 Room.prototype.getHostileCreeps = function() {
     if (this.hostileCreeps === undefined) {
-        var opts = {};
+        let opts = {};
         this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS, opts);
-        for (var i in this.hostileCreeps) {
-            var c = this.hostileCreeps[i];
+        for (let i in this.hostileCreeps) {
+            let c = this.hostileCreeps[i];
             if (c.owner.username !== 'Source Keeper' && c.owner.username !== 'Invader' && this.controller && this.controller.my) {
                 this.log("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
                 Game.notify("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
@@ -523,9 +523,9 @@ Room.prototype.getHostileCreeps = function() {
 Room.prototype.getUnsavePostions = function() {
     if (this.poss === undefined) {
         this.poss = [];
-        var creeps = this.getHostileCreeps();
-        for (var i in creeps) {
-            var creep = creeps[i];
+        let creeps = this.getHostileCreeps();
+        for (let i in creeps) {
+            let creep = creeps[i];
             this.poss = this.poss.concat(creep.pos.getInRangePositions(3));
         }
     }
@@ -538,7 +538,6 @@ Room.prototype.hasCreep = function(bodyType, setNoCreep) {
         this.noCreep = {};
     if (setNoCreep)
         this.noCreep[bodyType] = true;
-if (this.name === "W13S37" && bodyType === 'BODY_DEFAULT'){ Logger.logDebug(bodyType);Logger.logDebug(this.noCreep);! Logger.logDebug(! this.noCreep[bodyType] );}
     return ! this.noCreep[bodyType] ;
 };
 Room.prototype.hasCreepEmpty = function(bodyType, setNoCreep) {

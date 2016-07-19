@@ -80,12 +80,12 @@ class CTasks {
     }
 
     add (task) {
-        var myTask = this.collection[task.getCode()];
+        var myTask = this.collection[task.code];
         if (myTask === undefined) {
-            if ( this.collection[task.getCode()] !== undefined ) {
-                Logger.logError('task ' + task.getCode() + ' already exists!');
+            if ( this.collection[task.code] !== undefined ) {
+                Logger.logError('task ' + task.code + ' already exists!');
             } else {
-                this.collection[task.getCode()] = task;
+                this.collection[task.code] = task;
             }
         } else if (!myTask.equals(task)) {
             myTask.update(task);
@@ -99,7 +99,7 @@ class CTasks {
     del (task) {
         let taskCode;
         if ( typeof task === 'string' )    taskCode = task;
-        else if ( task instanceof CTask )  taskCode = task.getCode();
+        else if ( task instanceof CTask )  taskCode = task.code;
         else                               Logger.logError("Task invalid.");
         if (this.collection[taskCode] instanceof CTask) {
             delete this.collection[taskCode];
@@ -122,15 +122,15 @@ class CTasks {
                 var a = 0, b = 0;
                 var taskA = tasks.collection[taskCodeA];
                 var taskB = tasks.collection[taskCodeB];
-                if (taskA instanceof CTask) a = taskA.getPrio();
-                else { 
+                if (taskA instanceof CTask) a = taskA.prio;
+                else {
                     Logger.logError("wrong task " + taskCodeA);
-                    tasks.list.splice(tasks.list.indexOf(taskCodeA), 1); 
+                    tasks.list.splice(tasks.list.indexOf(taskCodeA), 1);
                 }
-                if (taskB instanceof CTask) b = taskB.getPrio();
+                if (taskB instanceof CTask) b = taskB.prio;
                 else {
                     Logger.logError("wrong task " + taskCodeB);
-                    tasks.list.splice(tasks.list.indexOf(taskCodeB), 1); 
+                    tasks.list.splice(tasks.list.indexOf(taskCodeB), 1);
                 }
                 return b - a;
             }

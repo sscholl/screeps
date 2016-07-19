@@ -68,6 +68,7 @@ class GameManager {
         Memory.stats["Game.gcl.level"] = Game.gcl.level;
         Memory.stats["Game.gcl.progress"] = Game.gcl.progress;
         Memory.stats["Game.gcl.progressTotal"] = Game.gcl.progressTotal;
+        
         this.garbageCollection();
     }
 
@@ -77,11 +78,19 @@ class GameManager {
     garbageCollection () {
         if (Game.time % 1 == 0) {
         	if (Memory.creeps)
-                _.difference(Object.keys(Memory.creeps),Object.keys(Game.creeps)).forEach(function(key) {delete Memory.creeps[key]});
+                _.difference(Object.keys(Memory.creeps),Object.keys(Game.creeps)).forEach(function(key) {
+                    if (Memory.creeps[key].tasks)
+                        for ( let roomName in Memory.creeps[key].tasks ) {
+                            let taskCode = Memory.creeps[key].tasks[roomName];
+                            if ( Game.rooms[roomName] && Game.rooms[roomName].getTasks().collection[taskCode])
+                                Game.rooms[roomName].getTasks().collection[taskCode].assignmentDelete(key);
+                        }
+                    delete Memory.creeps[key]
+                });
         	if (Memory.flags)
                 _.difference(Object.keys(Memory.flags),Object.keys(Game.flags)).forEach(function(key) {delete Memory.flags[key]});
-        	//if (Memory.rooms)
-            //    _.difference(Object.keys(Memory.rooms),Object.keys(Game.rooms)).forEach(function(key) {delete Memory.rooms[key]});
+        	if (Memory.rooms)
+                _.difference(Object.keys(Memory.rooms),Object.keys(Game.rooms)).forEach(function(key) {delete Memory.rooms[key]});
         	if (Memory.spawns)
                 _.difference(Object.keys(Memory.spawns),Object.keys(Game.spawns)).forEach(function(key) {delete Memory.spawns[key]});
         	if (Memory.structures)

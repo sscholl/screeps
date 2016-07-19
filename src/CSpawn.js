@@ -102,7 +102,7 @@ Spawn.prototype.spawnCarrier = function (name, memory) {
             WORK, MOVE, //150
         ];
     else if ( this.room.hasEnergyCapacitySave(950) )
-        bodyParts = [ 
+        bodyParts = [
             CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //600
             CARRY, MOVE, CARRY, MOVE,  //200
             WORK, MOVE, //150
@@ -124,15 +124,14 @@ Spawn.prototype.spawnCarrierTiny = function (name, memory) {
     return this.spawn('BODY_CARRIER_TINY', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnUpgrader = function (name, memory, qtyWork) {return;
+Spawn.prototype.spawnUpgrader = function (name, memory, qtyWork) {
     let bodyParts = [CARRY, MOVE];
     for ( let i = 1; i <= qtyWork; ++ i ) {
         if ( this.room.hasEnergyCapacitySave(i * BODYPART_COST[WORK] + BODYPART_COST[MOVE]) )
-            bodyParts = bodyParts.unshift(WORK); //unshift adds an element in the beginning of the array
-        else 
+            bodyParts.unshift(WORK); //unshift adds an element in the beginning of the array
+        else
             break;
     }
-Logger.logDebug(bodyParts);
     return this.spawn('BODY_UPGRADER', bodyParts, name, memory);
 }
 

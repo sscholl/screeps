@@ -108,7 +108,7 @@ Creep.prototype.runGuard = function() {
                 } else {
                     flag.remove();
                 }
-            } else if ( this.getCurrentTask() ) {
+            } else if ( this.currentTask ) {
                 this.taskMoveAndStay();
             } else {
                 let collectionPoint = Game.flags[this.room.name + '_M'];

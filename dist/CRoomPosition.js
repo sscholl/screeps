@@ -6,13 +6,17 @@ let Logger = require('Logger');
 module.exports = function () {
     if ( RoomPosition._initDebug !== true ) {
         RoomPosition._initDebug = true;
-        var methods = ['getSpotsCnt', 'getInRangePositions'];
-        for (var i in methods) {
+        let methods = ['getSpotsCnt', 'getInRangePositions'];
+        for (let i in methods) {
             Profiler._.wrap('RoomPosition', RoomPosition, methods[i]);
             Logger._.wrap('RoomPosition', RoomPosition, methods[i]);
         }
     }
 }
+
+Object.defineProperty(RoomPosition.prototype, "room", { get: function () {
+        return Game.rooms[this.roomName];
+}});
 
 Object.defineProperty(RoomPosition.prototype, "energy", { get: function () {
         if (this._energy === undefined) {
@@ -29,13 +33,13 @@ RoomPosition.prototype.getRoom = function() {
 }
 
 RoomPosition.prototype.getSpotsCnt = function() {
-    var cnt = 0;
-    var positions = this.getRoom().lookForAtArea('terrain', this.y - 1, this.x - 1, this.y + 1, this.x + 1);
+    let cnt = 0;
+    let positions = this.getRoom().lookForAtArea('terrain', this.y - 1, this.x - 1, this.y + 1, this.x + 1);
 
-    for (var y in positions) {
-        for (var x in positions[y]) {
-            var isFree = true;
-            for (var i in positions[y][x])
+    for (let y in positions) {
+        for (let x in positions[y]) {
+            let isFree = true;
+            for (let i in positions[y][x])
                 if (positions[y][x][i] === 'wall') isFree = false;
             if (isFree) ++ cnt;
         }
@@ -44,10 +48,10 @@ RoomPosition.prototype.getSpotsCnt = function() {
 };
 
 RoomPosition.prototype.getInRangePositions = function(distance) {
-    var poss = new Array(9);
-    var i = 0;
-    for (var y = this.y - distance; y < this.y + distance; ++ y) {
-        for (var x = this.x - distance; x < this.x + distance; ++ x) {
+    let poss = new Array(9);
+    let i = 0;
+    for (let y = this.y - distance; y < this.y + distance; ++ y) {
+        for (let x = this.x - distance; x < this.x + distance; ++ x) {
             poss[i ++] = new RoomPosition(x,y,this.roomName);
         }
     }
@@ -71,12 +75,12 @@ RoomPosition.prototype.findClosestEmptyExtension = function (opts) {
     });
 };
 RoomPosition.prototype.findClosestEnergyContainer = function (opts) {
-    var spawn = this.findClosestByPath(FIND_MY_SPAWNS, {
+    let spawn = this.findClosestByPath(FIND_MY_SPAWNS, {
         filter: function (object) {
             return object.energy > 0;
         }
     });
-    var extension = this.findClosestByPath(FIND_MY_STRUCTURES, {
+    let extension = this.findClosestByPath(FIND_MY_STRUCTURES, {
         filter: function (object) {
             return object.structureType === STRUCTURE_EXTENSION && object.energy > 0;
         }
@@ -137,11 +141,10 @@ RoomPosition.prototype.findClosestSearchingUpgrader = function () {
 
 
 RoomPosition.prototype.findClosestCreep = function (_bodyType) {
-    var bodyType = _bodyType;
+    let bodyType = _bodyType;
+
     return this.findClosestByPath(FIND_MY_CREEPS, {filter:
-                function (creep) { if (creep.memory.body==='BODY_DEFAULT'&&creep.memory.body === bodyType
-                            && (creep.memory.phase === 'PHASE_SEARCH'
-                                    || creep.memory.phase === undefined)) creep.say("im found");
+                function (creep) {
                     return creep.memory.body === bodyType
                             && (creep.memory.phase === 'PHASE_SEARCH'
                                     || creep.memory.phase === undefined)
@@ -150,7 +153,7 @@ RoomPosition.prototype.findClosestCreep = function (_bodyType) {
 };
 
 RoomPosition.prototype.findClosestCreepEmpty = function (_bodyType) {
-    var bodyType = _bodyType;
+    let bodyType = _bodyType;
     return this.findClosestByPath(FIND_MY_CREEPS, {filter:
                 function (creep) {
                     return creep.memory.body === bodyType
@@ -162,7 +165,7 @@ RoomPosition.prototype.findClosestCreepEmpty = function (_bodyType) {
 };
 
 RoomPosition.prototype.findClosestCreepFull = function (_bodyType) {
-    var bodyType = _bodyType;
+    let bodyType = _bodyType;
     return this.findClosestByPath(FIND_MY_CREEPS, {filter:
                 function (creep) {
                     return creep.memory.body === bodyType
