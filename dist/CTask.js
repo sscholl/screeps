@@ -140,7 +140,6 @@ class CTask {
 
 
     get qty () {
-        if ( this._qty === undefined ) this.qty = this._qty;
         return this._qty;
     }
     set qty (v) {
@@ -159,7 +158,6 @@ class CTask {
     }
 
     get cnt () {
-        if ( this._cnt === undefined ) this.cnt = this._cnt;
         return this._cnt;
     }
     set cnt (v) {
@@ -183,7 +181,7 @@ class CTask {
             switch (this.type) {
                 case 'TASK_HARVEST':        this.bodyTypes = ['BODY_HARVESTER', 'BODY_DEFAULT']; break;
                 case 'TASK_COLLECT':
-                case 'TASK_GATHER':         this.bodyTypes = ['BODY_CARRIER']; break;
+                case 'TASK_GATHER':
                 case 'TASK_DELIVER':        this.bodyTypes = ['BODY_CARRIER', 'BODY_DEFAULT']; break;
                 case 'TASK_UPGRADE':        this.bodyTypes = ['BODY_UPGRADER', 'BODY_DEFAULT']; break;
                 case 'TASK_REPAIR':
@@ -390,8 +388,7 @@ class CTask {
             && this.targetName === target.name
             && this.qty === qty
             && this.cnt === cnt
-            && this.cnt === cnt
-            && prio === undefined ? true : this.prio === prio
+            && ((prio === undefined) ? true : this.prio === prio)
         ) {
             for ( let t of targets )
                 if ( this.targetIds.indexOf(t.id) === -1 )

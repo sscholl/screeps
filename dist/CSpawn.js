@@ -125,12 +125,14 @@ Spawn.prototype.spawnCarrierTiny = function (name, memory) {
 }
 
 Spawn.prototype.spawnUpgrader = function (name, memory, qtyWork) {
-    let bodyParts = [CARRY, MOVE];
-    for ( let i = 1; i <= qtyWork; ++ i ) {
-        if ( this.room.hasEnergyCapacitySave(i * BODYPART_COST[WORK] + BODYPART_COST[MOVE]) )
+    let bodyParts = [WORK, WORK, CARRY, MOVE];
+    for ( let i = 3; i <= qtyWork; ++ i ) {
+        if ( this.room.hasEnergyCapacitySave(i * BODYPART_COST[WORK] + BODYPART_COST[MOVE]) ) {
             bodyParts.unshift(WORK); //unshift adds an element in the beginning of the array
-        else
+            qtyWork = i;
+        } else {
             break;
+        }
     }
     return this.spawn('BODY_UPGRADER', bodyParts, name, memory);
 }

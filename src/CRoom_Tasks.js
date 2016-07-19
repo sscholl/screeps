@@ -36,7 +36,8 @@ Room.prototype.initTasksStatic = function() {
         if ( this.controller.my ) {
             let cnt = Math.ceil(this.controllerRefill ? this.controllerRefill.getEnergyPercentage() * 5 : 9);
             let qty = Math.ceil(this.controllerRefill ? this.controllerRefill.getEnergyPercentage() * 40 : 20);
-            this.createTask( 'TASK_UPGRADE', this.controller, qty, cnt );
+            let prio = this.controller.ticksToDowngrade ? 100 : undefined;
+            this.createTask( 'TASK_UPGRADE', this.controller, qty, cnt, prio );
         } else if ( ! this.controller.owner ) {
             this.createTask( 'TASK_RESERVE', this.controller, 1, 1 );
         }
@@ -125,27 +126,33 @@ Room.prototype.initTasksDynamic = function() {
 }
 
 Room.prototype.initTasksDynamic2 = function() {
-    let buildDefaultCnt = 0;
-    let buildDefaultQty = 0;
+    let cnt = 0;
+    let qty = 0;
     for ( let i in this.constructions ) {
-        let construction = this.constructions[i];
-        if ( construction instanceof ConstructionSite && construction.my ) {
-            if ( construction.structureType === STRUCTURE_SPAWN ) {
-                this.createTask( 'TASK_BUILD', construction, construction.progressTotal - construction.progress );
+        let c = this.constructions[i];
+        if ( c instanceof ConstructionSite && c.my ) {
+            if ( c.structureType === STRUCTURE_SPAWN ) {
+                this.createTask( 'TASK_BUILD', c, c.progressTotal - c.progress, 8, 50 );
+            } else if ( c.structureType === STRUCTURE_ROAD || c.structureType === STRUCTURE_WALL || c.structureType === STRUCTURE_RAMPART ) {
+                cnt += 0.01;
+                qty += c.progressTotal - c.progress;
+            } else if ( c.structureType === STRUCTURE_EXTENSION ) {
+                cnt += 0.33;
+                qty += c.progressTotal - c.progress;
             } else {
-                buildDefaultCnt ++;
-                buildDefaultQty += construction.progressTotal - construction.progress;
+                cnt ++;
+                qty += c.progressTotal - c.progress;
             }
         }
     }
     let flagName = this.name + "_CONSTRUCT";
-    if ( buildDefaultCnt ) {
-        if ( buildDefaultCnt > 1 ) buildDefaultCnt = 1;
+    if ( cnt ) {
         if ( ! Game.flags[flagName] ) this.createFlag(this.centerPos, flagName, COLOR_ORANGE, COLOR_ORANGE);
-        if ( Game.flags[flagName] )
-            this.createTask( 'TASK_BUILD', Game.flags[flagName], buildDefaultQty, buildDefaultCnt, 25 );
-        else
+        if ( Game.flags[flagName] ) {
+            let t = this.createTask( 'TASK_BUILD', Game.flags[flagName], qty, cnt, 25 );
+        } else {
             this.logError("Can't create build default task.");
+        }
     } else if ( Game.flags[flagName] ) {
         Game.flags[flagName].remove();
     }
@@ -254,6 +261,7 @@ Room.prototype.getTaskCode = function (type, target) {
 }
 
 Room.prototype.createTask = function(type, target, qty = 9999, cnt = 9999, prio, targets = []) {
+    cnt = Math.ceil(cnt);
     let code = this.getTaskCode(type, target);
     let task = this.getTasks().collection[code];
     if ( task === undefined ) {

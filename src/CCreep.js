@@ -53,9 +53,6 @@ Object.defineProperty(Creep.prototype, "bodyType", {
     },
 });
 
-/**
- * add getter and setter for task codes
- */
 Object.defineProperty(Creep.prototype, "tasks", {
     get: function () {
         if (this.memory.tasks === undefined)
@@ -66,10 +63,22 @@ Object.defineProperty(Creep.prototype, "tasks", {
         this.memory.tasks = v;
     },
 });
-
-/**
- * add getter and setter for task codes
- */
+Object.defineProperty(Creep.prototype, "taskMaster", {
+    get: function () {
+        return this.memory.taskMaster;
+    },
+    set: function (v) {
+        this.memory.taskMaster = v;
+    },
+});
+Object.defineProperty(Creep.prototype, "taskMasterRoom", {
+    get: function () {
+        return this.memory.taskMasterRoom;
+    },
+    set: function (v) {
+        this.memory.taskMasterRoom = v;
+    },
+});
 Object.defineProperty(Creep.prototype, "tasksMaster", {
     get: function () {
         if (this.memory.tasksMaster === undefined)
@@ -81,9 +90,6 @@ Object.defineProperty(Creep.prototype, "tasksMaster", {
     },
 });
 
-/**
- * add getter and setter for task codes
- */
 Object.defineProperty(Creep.prototype, "taskCodes", {
     get: function () {
         if (this.memory.taskCodes === undefined)
@@ -94,10 +100,6 @@ Object.defineProperty(Creep.prototype, "taskCodes", {
         this.memory.taskCodes = v;
     },
 });
-
-/**
- * add getter and setter for master task code
- */
 Object.defineProperty(Creep.prototype, "taskCodesMaster", {
     get: function () {
         if (this.memory.taskCodesMaster === undefined)
@@ -161,8 +163,8 @@ Creep.prototype.run = function () {
             collectionPoint = Game.flags[this.room.name];
             r = this.generalActionWorker();
             break;
-        case 'BODY_MELEE':  collectionPoint = Game.flags[this.room.name + '_M']; r = this.generalActionMelee(); break;
-        case 'BODY_RANGER': collectionPoint = Game.flags[this.room.name + '_M']; r = this.generalActionRanger(); break;
+        case 'BODY_MELEE':
+        case 'BODY_RANGER': collectionPoint = Game.flags[this.room.name + '_M']; r = this.generalActionAttacker(); break;
         case 'BODY_HEALER': collectionPoint = Game.flags[this.room.name + '_M']; r = this.generalActionHealer(); break;
         default: this.logError("has no body type"); return;
     }
@@ -216,12 +218,13 @@ Creep.prototype.run = function () {
 
 Creep.prototype.generalActionWorker = function () {
     //flee if near to enemy
-    if ( this.room.getHostileCreeps().length ) {
-        for ( let e of this.room.getHostileCreeps() ) {
-            if ( this.pos.inRangeTo(e, 8) ) {
-                this.flee(15);
-                return true;
-            }
+    if ( this.room.hostileCreeps.length ) {
+        for ( let c of this.room.hostileCreeps ) {
+            if ( c.isAttacker )
+                if ( (this.pos.inRangeTo(c, 8) && ! c.isSourceKeeper()) || this.pos.inRangeTo(c, 3) ) {
+                    this.flee(15);
+                    return true;
+                }
         }
     }
 }
@@ -236,12 +239,13 @@ Creep.prototype.movePredefined = function (target, opts = {}, range = 1) {
     }
     if ( ! this.pos.inRangeTo(target, range)) {
         opts.reusePath = 6;
+        if ( this.room.unsavePostions.length ) opts.avoid = this.room.unsavePostions;
         let r = this.moveTo(target, opts);
-        if (r === ERR_NO_PATH) {
+        if ( r === ERR_NO_PATH ) {
             opts.ignoreCreeps = true;
             r = this.moveTo(target, opts);
         }
-        if (r !== OK) {
+        if ( r !== OK ) {
             this.logError("Can't find a way to " + JSON.stringifyOnce(target) + ". Result Code:" + r);
             this.moveRandom();
         }
@@ -268,7 +272,7 @@ Creep.prototype.moveRandom = function () {
 }
 
 Creep.prototype.flee = function (range) {
-    let enemies = this.room.getHostileCreeps();
+    let enemies = this.room.hostileCreeps;
     let avoid = _.map(enemies,function (t) {return {'pos':t.pos,'range':range};});
     let res = PathFinder.search(this.pos,avoid,{flee:true,maxOps:2500*2});
     if ( res.path[0] instanceof RoomPosition ) {
@@ -280,7 +284,7 @@ Creep.prototype.flee = function (range) {
 // ########### ENERGY SECTION ###########################################
 
 Creep.prototype.fillOnStructure = function (structure) {
-    let r = -99;
+    let r = OK;
     if ( structure instanceof StructureSpawn ) {
         this.movePredefined(structure.pos);
         if ( structure.room.isEnergyMax() )
@@ -290,6 +294,7 @@ Creep.prototype.fillOnStructure = function (structure) {
         r = this.withdraw(structure, RESOURCE_ENERGY);
     } else {
         this.logError("structure " + typeof structure + " is not valid.");
+        r = -99;
     }
     return r;
 }
@@ -329,7 +334,7 @@ this.tasksMaster[this.room.name] = undefined; // remove master task of this room
 this.tasks[task.room.name] = this.tasks[task.room.name] ? this.tasks[task.room.name].concat([task.code]) : [task.code];
     this.memory.phase = 'PHASE_TASK';
     if (task.type === 'TASK_HARVEST_REMOTE' || task.type === 'TASK_GATHER_REMOTE' || task.type === 'TASK_BUILD_REMOTE' || task.type === 'TASK_RESERVE_REMOTE' || task.type === 'TASK_GUARD_REMOTE') {
-        this.taskMaster(task);
+        this.taskAssignMaster(task);
     }
 };
 
@@ -353,8 +358,10 @@ if (this.tasks[this.room.name]) this.tasks[this.room.name].shift();
     delete this.task;
 };
 
-Creep.prototype.taskMaster = function (task) {
+Creep.prototype.taskAssignMaster = function (task) {
     if (task instanceof CTask) {
+this.taskMaster = task.code;
+this.taskMasterRoom = task.room.name;
         this.taskCodesMaster[task.room.name] = task.code;
 this.tasksMaster[task.room.name] = task.code;
     } else {
@@ -363,6 +370,8 @@ this.tasksMaster[task.room.name] = task.code;
 };
 
 Creep.prototype.hasTask = function (task) {
+this.taskMaster = task.code;
+this.taskMasterRoom = task.room.name;
     return this.taskCodes.indexOf(task.code) !== -1 || (this.taskCodesMaster[task.room.name] === task.code && this.room.name !== task.roomName);
 };
 
@@ -384,7 +393,7 @@ Creep.prototype.taskHarvest = function () {
                     } else if ( source.container ) {
                         if ( source.container.needsRepair(true) )
                             busy = this.repair(source.container);
-                    } else {
+                    } else if ( ! this.room.controller || this.room.controller.level && this.room.defaultSpawn ) {
                         let c = source.spot.lookFor(LOOK_CONSTRUCTION_SITES);
                         if ( c.length && c[0] ) {
                             busy = this.build(c[0]);
@@ -393,7 +402,7 @@ Creep.prototype.taskHarvest = function () {
                         }
                     }
             }
-        } else {if ( this.bodyType !== 'BODY_HARVESTER')
+        } else {
             busy = this.movePredefined(source);
         }
         this.harvest(source);
@@ -434,8 +443,8 @@ Creep.prototype.taskGather = function () {
             let r = this.movePredefined(target.posHandshake, undefined, 0);
         } else {
             if ( target.currentTask ) {
-                if ( target.pos && target.pos.energy > 50 ) {
-                    this.pickup(target.pos);
+                if ( target.pos && target.pos.energy && target.pos.energy.energy > 50 ) {
+                    this.pickup(target.pos.energy);
                 } else {
                     let c = target.currentTask.target.container;
                     if ( c && c.store.energy >= 50) {
@@ -554,7 +563,10 @@ Creep.prototype.taskBuild = function () {
     if ( target instanceof Flag ) {
         target = this.pos.findClosestByPath(this.room.constructions);
     }
-    if ( target instanceof ConstructionSite ) {
+
+    if ( this.carry.energy <= 0 && ( ! this.room.creepsCarrier.length || ! this.deliverTask) ) {
+        this.taskDisassign();
+    } else if ( target instanceof ConstructionSite ) {
         this.deliverTask; //create deliverTask
         //if ( this.carry.energy <= 0 && deliverTask.assignmentsCnt === 0 ) {
             //let r = this.fillOnStructure(this.room.controllerRefill);
@@ -667,7 +679,7 @@ Creep.prototype.taskReserve = function () {
         return;
     }
     let target = this.currentTask.target;
-    if ( target instanceof StructureController ) {
+    if ( target instanceof StructureController && target.level < 1 ) {
         if ( ! this.pos.inRangeTo(target.pos, 1) ) {
             this.movePredefined(target, {}, 1);
         } else {
@@ -690,3 +702,13 @@ Creep.prototype.taskReserve = function () {
         this.taskDisassign();
     }
 };
+
+Creep.prototype.isAttacker = function () {
+    return this.getActiveBodyparts(ATTACK) || this.getActiveBodyparts(RANGED_ATTACK);
+}
+Creep.prototype.isSourceKeeper = function () {
+    return this.owner.username === 'Source Keeper';
+}
+Creep.prototype.isInvader= function () {
+    return this.owner.username === 'Invader';
+}

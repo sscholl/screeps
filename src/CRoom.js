@@ -88,9 +88,6 @@ Object.defineProperty(Room.prototype, "defaultSpawn", { get: function () {
         return this.spawns[0];
 }});
 
-/**
- * find towers
- */
 Object.defineProperty(Room.prototype, "towers", { get: function () {
     if (this._towers === undefined) {
         if ( this.controller && this.controller.my )
@@ -100,14 +97,55 @@ Object.defineProperty(Room.prototype, "towers", { get: function () {
     }
     return this._towers;
 }});
-
-/**
- * find towers every tick
- */
 Object.defineProperty(Room.prototype, "labs", { get: function () {
     if (this._labs === undefined)
         this._labs = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_LAB}});
     return this._labs;
+}});
+
+Object.defineProperty(Room.prototype, "hostileCreeps", { get: function () {
+    if ( this._hostileCreeps === undefined ) {
+        this._hostileCreeps = [];
+        this._hostileCreeps = this.find(FIND_HOSTILE_CREEPS);
+        for ( let c of this._hostileCreeps ) {
+            if ( ! c.isSourceKeeper() && ! c.isInvader() && this.controller && this.controller.my ) {
+                Game.notify("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
+            }
+        }
+    }
+    return this._hostileCreeps;
+}});
+
+Object.defineProperty(Room.prototype, "unsavePostions", { get: function () {
+    if ( this._unsavePostions === undefined ) {
+        this._unsavePostions = [];
+        for (let c of this.hostileCreeps ) {
+            this._unsavePostions = this._unsavePostions.concat(c.pos.getInRangePositions(3));
+        }
+    }
+    return this._unsavePostions;
+}});
+
+Object.defineProperty(Room.prototype, "remoteRoomNames", { get: function () {
+    if ( this._remoteRoomNames === undefined ) {
+        this._remoteRoomNames = [];
+        for ( let f of this.find(FIND_FLAGS, { filter: { color: COLOR_YELLOW, secondaryColor: COLOR_WHITE } } ) ) {
+            let s = f.name.split('_');
+            if ( s.length === 3 && s[0] === 'R' && s[1] === this.name )
+                this._remoteRoomNames.push(s[2]);
+        }
+    }
+    return this._remoteRoomNames;
+}});
+Object.defineProperty(Room.prototype, "remoteRooms", { get: function () {
+    if ( this._remoteRooms === undefined ) {
+        this._remoteRooms = [];
+        for ( let r of this.remoteRoomNames ) {
+            if ( Game.rooms[r] )
+                this._remoteRooms.push(Game.rooms[r])
+        }
+    }
+    return this._remoteRooms;
 }});
 
 // ######### Room #############################################################
@@ -151,6 +189,8 @@ Room.prototype.run = function() {
 
     this.towerAction();
 
+
+
     -- this.memory.timer;
 
     if ( this.controller instanceof StructureController ) {
@@ -175,7 +215,7 @@ Room.prototype.run = function() {
         if ( Memory.stats[key] !== undefined || this.sources[i].energy !== this.sources[i].energyCapacity ) Memory.stats[key] = this.sources[i].energy;
     }
     let key = "room." + this.name + ".hostileCreeps.count";
-    let cnt = this.getHostileCreeps().length;
+    let cnt = this.hostileCreeps.length;
     if ( Memory.stats[key] !== undefined || cnt ) Memory.stats[key] = cnt;
 };
 
@@ -371,61 +411,6 @@ Room.prototype.creepsRequired = function() {
         + this.getDefaultUpgraderCount()//harvester, upgrader
 };
 
-Room.prototype.creepsHarvesterCnt = function() {
-    var cnt = 0;
-    var tasks = this.getTasks();
-    for ( var i in tasks.collection )
-        if ( tasks.collection[i].getType() === 'TASK_HARVEST' ) {
-            //this.log(tasks.collection[i].getCode() + ": " + tasks.collection[i].getQtyAssigned() + "/" + tasks.collection[i].getQty() + ' ' + tasks.collection[i].getAssignmentsCnt() + '/' + tasks.collection[i].getCnt());
-            cnt ++;
-            if (tasks.collection[i].getQty() - tasks.collection[i].getQtyAssigned() && tasks.collection[i].getCnt() >= 2) cnt ++;
-        }
-    if (  this.creepsCarrier.length < this.creepsCarrierCnt() ) return this.creepsHarvester.length;
-    return cnt;
-};
-/**
- * Calculates the number of required carrier creeps.
- * Depends on harvesters (harvesters create energy, which is just dropped)
- *   and links at energy source (is probably not required to be carried)
- *   and maybe dropped energy (if alot)
- * @return {Number}
- */
-Room.prototype.creepsCarrierCnt = function() {
-    var cnt = 0;
-
-    //cnt += (2 * this.creepsHarvester.length) - this.memory.sourceLinkCnt; // this.memory.sourcesSaveCount-
-    for (var i in this.creepsHarvester) {
-        var creep = this.creepsHarvester[i];
-        var task = creep.getCurrentTask();
-        if ( task instanceof CTask ) {
-            var source = task.getTarget();
-            if ( source instanceof Source ) {
-                cnt += source.getMemory().linkId && this.storage instanceof StructureStorage && this.storageLink instanceof StructureLink ? 0 : 2;
-            }
-        }
-    }
-    return cnt;
-};
-Room.prototype.creepsCarrierTinyCnt = function() {
-    var cnt = 0;//2 * (this.memory.sourcesSaveCount - this.memory.sourceLinkCnt);
-    if (this.memory.storageLinkId) cnt ++;
-    return cnt;
-};
-Room.prototype.getCreepsUpgraderCnt = function() {
-    if (this.creepsUpgraderCnt === undefined) {
-        if (this.controllerRefill instanceof Structure) {
-            this.creepsUpgraderCnt = 1;
-            if (this.controllerRefill instanceof StructureStorage) {
-                if (this.storage.store.energy > 900000) {
-                    ++ this.creepsUpgraderCnt;
-                    if (this.storage.store.energy > 920000) ++ this.creepsUpgraderCnt;
-                }
-            }
-        }
-    }
-    return this.creepsUpgraderCnt;
-};
-
 // ########### SPAWN SECTION ############################################
 Room.prototype.spawnAction = function() {
     for (let spawn of this.spawns) {
@@ -449,7 +434,7 @@ Room.prototype.spawnAction = function() {
                     case 'TASK_UPGRADE':        if ( this.defaultSpawn.id === spawn.id &&  task.qty - task.qtyAssigned > 2 ) creepName = spawn.spawnUpgrader(undefined, undefined, task.qty); break;
                     case 'TASK_GATHER':         creepName = spawn.spawnCarrier(); break;
                     case 'TASK_REPAIR':
-                    case 'TASK_BUILD':          creepName = spawn.spawnDefault(undefined, undefined, 10); break;
+                    case 'TASK_BUILD':          creepName = spawn.spawnDefault(undefined, undefined, 5); break;
                     case 'TASK_FILLSTORAGE':    creepName = spawn.spawnCarrierTiny(); break;
                     case 'TASK_GUARD':          creepName = spawn.spawnRanger(undefined, undefined, task.qty); break;
                 }
@@ -503,33 +488,6 @@ Room.prototype.isEnergyMax = function(e) {
 };
 Room.prototype.hasBasicInfrastructure = function(e) {
     return this.creepsHarvester.length >= 1 && this.creepsCarrier.length >= 1;
-};
-
-// ########### HOSTILE SECTION ###########################################
-Room.prototype.getHostileCreeps = function() {
-    if (this.hostileCreeps === undefined) {
-        let opts = {};
-        this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS, opts);
-        for (let i in this.hostileCreeps) {
-            let c = this.hostileCreeps[i];
-            if (c.owner.username !== 'Source Keeper' && c.owner.username !== 'Invader' && this.controller && this.controller.my) {
-                this.log("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
-                Game.notify("User " + c.owner.username + " moved into room " + this.name + " with body " + JSON.stringify(c.body), 0);
-            }
-        }
-    }
-    return this.hostileCreeps;
-};
-Room.prototype.getUnsavePostions = function() {
-    if (this.poss === undefined) {
-        this.poss = [];
-        let creeps = this.getHostileCreeps();
-        for (let i in creeps) {
-            let creep = creeps[i];
-            this.poss = this.poss.concat(creep.pos.getInRangePositions(3));
-        }
-    }
-    return this.poss;
 };
 
 // ########### OTHER SECTION ############################################
