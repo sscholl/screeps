@@ -6,7 +6,7 @@ let Logger = require('Logger');
 module.exports = function () {
     if ( Creep._initDebugHealer !== true ) {
         Creep._initDebugHealer = true;
-        var methods = []; //['runHealer'];
+        var methods = ['runHealer'];
         for (var i in methods) {
             Profiler._.wrap('Creep', Creep, methods[i]);
             Logger._.wrap('Creep', Creep, methods[i]);
@@ -24,22 +24,22 @@ Creep.prototype.runHealer = function() {
         }
     });
     if (this.hits < this.hitsMax - 50 /* no more heal */) {
-        this.movePredefined(this.room.defaultSpawn);
+        this.moveTo(this.room.defaultSpawn);
         this.heal(damagedCreep);
         this.rangedHeal(damagedCreep);
-        return;
+        return true;
     }
 
     if(damagedCreep) {
         var hisTarget = Game.getObjectById(damagedCreep.memory.currentTargetId);
         if (hisTarget && this.pos.inRangeTo(hisTarget, 3))
-            this.movePredefined(this.room.defaultSpawn);
+            this.moveTo(this.room.defaultSpawn);
         else
             if (!this.pos.inRangeTo(damagedCreep, 1))
-                this.movePredefined(damagedCreep);
+                this.moveTo(damagedCreep);
         this.rangedHeal(damagedCreep);
         this.heal(damagedCreep);
-        return;
+        return true;
     }
     var guard;
     if (this.memory.currentTargetId)
@@ -52,14 +52,10 @@ Creep.prototype.runHealer = function() {
         });
     if (guard) {
         if (!this.pos.inRangeTo(guard, 1))
-           this.movePredefined(guard);
+           this.moveTo(guard);
        this.memory.currentTargetId = guard.id;
     } else {
-        var collectionPoint = Game.flags[this.room.name + '_M'];
-        if (collectionPoint) {
-          this.movePredefined(collectionPoint.pos, {}, 0);
-        } else {
-            this.movePredefined(this.room.defaultSpawn);
-        }
+        return false;
     }
+    return true;
 }

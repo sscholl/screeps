@@ -12,7 +12,7 @@ Structure.prototype.isEmpty = function() {
 };
 
 Structure.prototype.needsRepair = function(name) {
-    return this.hits < this.hitsMax * 0.98;
+    return this.hits < this.hitsMax * 0.95;
 };
 
 Structure.prototype.getEnergyPercentage = function(name) {

@@ -97,15 +97,17 @@ class CTasks {
      * @param {CTask, String} the task object or the task code
      */
     del (task) {
-        var taskCode;
+        let taskCode;
         if ( typeof task === 'string' )    taskCode = task;
         else if ( task instanceof CTask )  taskCode = task.getCode();
         else                               Logger.logError("Task invalid.");
         if (this.collection[taskCode] instanceof CTask) {
-            Logger.logError("Task del " + taskCode);
             delete this.collection[taskCode];
+            let i = this.list.indexOf(taskCode);
+            if (i >= 0) this.list.splice(i, 1);
         } else {
-            Logger.logError("Task does not exist.");
+            Logger.logDebug(task);
+            this.room.logError("Task " + taskCode + " does not exist.");
         }
     }
 
@@ -121,11 +123,15 @@ class CTasks {
                 var taskA = tasks.collection[taskCodeA];
                 var taskB = tasks.collection[taskCodeB];
                 if (taskA instanceof CTask) a = taskA.getPrio();
-                else { Logger.logError("wrong task " + taskCodeA);
-                    tasks.list.splice(tasks.list.indexOf(taskCodeA), 1); }
+                else { 
+                    Logger.logError("wrong task " + taskCodeA);
+                    tasks.list.splice(tasks.list.indexOf(taskCodeA), 1); 
+                }
                 if (taskB instanceof CTask) b = taskB.getPrio();
-                else { Logger.logError("wrong task " + taskCodeB);
-                    tasks.list.splice(tasks.list.indexOf(taskCodeB), 1); }
+                else {
+                    Logger.logError("wrong task " + taskCodeB);
+                    tasks.list.splice(tasks.list.indexOf(taskCodeB), 1); 
+                }
                 return b - a;
             }
         );

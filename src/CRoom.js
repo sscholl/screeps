@@ -9,8 +9,8 @@ let CTask = require('CTask');
 module.exports = function () {
     if ( Room._initDebug !== true ) {
         Room._initDebug = true;
-        var methods = ['run'];//, 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
-        for (var i in methods) {
+        let methods = [];//, 'run', 'initSources', 'initDynamicSources', 'initDynamicConstructions', 'initDynamicStructures', 'linkAction', 'spawnAction'];
+        for ( let i in methods ) {
             Profiler._.wrap('Room', Room, methods[i]);
             Logger._.wrap('Room', Room, methods[i]);
         }
@@ -34,23 +34,22 @@ Object.defineProperty(Room.prototype, "constructionManager", {
     },
 });
 
-/**
- * add getter and setter for memory
- */
-Object.defineProperty(Room.prototype, "centerPos", {
-    get: function () {
+Object.defineProperty(Room.prototype, "flag", { get: function () {
+        if (this._flag === undefined) {
+            this._flag = Game.flags[this.name];
+            if ( ! this._flag ) this._flag = null;
+        }
+        return this._flag;
+}});
+Object.defineProperty(Room.prototype, "centerPos", { get: function () {
         if (this._centerPos === undefined) {
-            //if (this.memory.centerPos === undefined) {
-                if (this.spawns && this.spawns[0] instanceof StructureSpawn) this._centerPos = this.spawns[0].pos;
-                else if (this.controller)   this._centerPos = this.controller.pos;       //TODO: change to spawn loc
-                else                        this._centerPos = this.getPositionAt(24,24); //TODO: check if wall exists
-            //}
-            //this._centerPos = this.memory.centerPos;
-            //this._centerPos.__proto__ = RoomPosition.prototype;
+            if (this.spawns && this.spawns[0] instanceof StructureSpawn) this._centerPos = this.spawns[0].pos;
+            else if (this.flag)         this._centerPos = this.flag.pos;
+            else if (this.controller)   this._centerPos = this.controller.pos;       //TODO: change to spawn loc
+            else                        this._centerPos = this.getPositionAt(24,24); //TODO: check if wall exists
         }
         return this._centerPos;
-    }
-});
+}});
 
 /**
  * add getter and setter for memory
@@ -60,15 +59,15 @@ Object.defineProperty(Room.prototype, "exits", {
         if (this._exits === undefined) {
             if (this.memory.exits === undefined) {
                 this.memory.exits = {};
-                for (var i of Room.EXITS) {
-                    var closest = this.centerPos.findClosestByPath(i);
+                for (let i of Room.EXITS) {
+                    let closest = this.centerPos.findClosestByPath(i);
                     if (closest)
                         this.memory.exits[i] = closest;
                 }
             }
             this._exits = this.memory.exits;
-            for (var i in this._exits)
-                this._exits[i].__proto__ = RoomPosition.prototype;
+            for (let e of this._exits)
+                e.__proto__ = RoomPosition.prototype;
         }
         return this._exits;
     },
@@ -78,32 +77,44 @@ Object.defineProperty(Room.prototype, "exits", {
     },
 });
 
+Object.defineProperty(Room.prototype, "spawns", { get: function () {
+    if (this._spawns === undefined)
+        this._spawns = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_SPAWN}});
+    return this._spawns;
+}});
+
+Object.defineProperty(Room.prototype, "defaultSpawn", { get: function () {
+    if ( this.spawns.length > 0 )
+        return this.spawns[0];
+}});
+
 /**
  * find towers every tick
  */
-Object.defineProperty(Room.prototype, "towers", {
-    get: function () {
-        if (this._towers === undefined) {
-            this._towers = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
-        }
-        return this._towers;
-    },
-});
+Object.defineProperty(Room.prototype, "towers", { get: function () {
+    if (this._towers === undefined)
+        this._towers = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_TOWER}});
+    return this._towers;
+}});
+
+/**
+ * find towers every tick
+ */
+Object.defineProperty(Room.prototype, "labs", { get: function () {
+    if (this._labs === undefined)
+        this._labs = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_LAB}});
+    return this._labs;
+}});
 
 // ######### Room #############################################################
 
 Room.prototype.run = function() {
-
-    this.spawns = this.find(FIND_MY_STRUCTURES, {filter:{structureType:STRUCTURE_SPAWN}});
-    if (this.spawns.length > 0) {
-        this.defaultSpawn = this.spawns[0];
-    }
     this.resetFind();
     this.initCreeps();
-    if (!this.memory.timer || this.memory.timer % 600 === 0) {
+    if (!this.memory.timer || this.memory.timer % 60 === 0) {
         this.memory.timer = -1;
         this.initSources();
-        this.memory.timer = 600;
+        this.memory.timer = 60;
     }
 
     this.loadSources();
@@ -119,17 +130,17 @@ Room.prototype.run = function() {
         this.initDynamicStructures();
     }
 
-    if (this.memory.timer % 600 === 0) {
+    if (this.memory.timer % 1 === 0) {
         this.initTasksStatic();
     }
-    if (this.memory.timer % 15 == 0) {
+    if (this.memory.timer % 1 == 0) {
         this.initTasksDynamic2();
     }
     if (this.memory.timer % 1 == 0) {
         this.initTasksDynamic();
     }
 
-    var withHandshake = this.memory.timer % 5== 0;
+    let withHandshake = this.memory.timer % 1 === 0;
     this.assignTasks(withHandshake);
     this.linkAction();
     this.spawnAction();
@@ -137,17 +148,42 @@ Room.prototype.run = function() {
     this.towerAction();
 
     -- this.memory.timer;
+
+    if ( this.controller instanceof StructureController ) {
+        if ( this.controller.my ) {
+            Memory.stats["room." + this.name + ".energyAvailable"] = this.energyAvailable;
+            Memory.stats["room." + this.name + ".energyCapacityAvailable"] = this.energyCapacityAvailable;
+            Memory.stats["room." + this.name + ".controller.progress"] = this.controller.progress;
+            Memory.stats["room." + this.name + ".controller.progressTotal"] = this.controller.progressTotal;
+            Memory.stats["room." + this.name + ".controller.level"] = this.controller.level;
+            if ( this.storage instanceof StructureStorage ) {
+            Memory.stats["room." + this.name + ".storage.storeCapacity"] = this.storage.storeCapacity;
+            for (let i of RESOURCES_ALL) if ( Memory.stats["room." + this.name + ".storage.store." + i] !== undefined || this.storage.store[i] > 0 )Memory.stats["room." + this.name + ".storage.store." + i] = this.storage.store[i];
+            }
+        } else if ( this.controller.reservation && this.controller.reservation.username === 'sscholl' ) {
+            Memory.stats["room." + this.name + ".controller.reservationTicksToEnd"] = this.controller.reservation.ticksToEnd;
+        } else if ( Memory.stats["room." + this.name + ".controller.reservationTicksToEnd"] !== undefined ) {
+            Memory.stats["room." + this.name + ".controller.reservationTicksToEnd"] = 0;
+        }
+    }
+    for (let i in this.sources) {
+        let key = "room." + this.name + ".sources." + this.sources[i].pos.x + "_" + this.sources[i].pos.y + ".energy";
+        if ( Memory.stats[key] !== undefined || this.sources[i].energy !== this.sources[i].energyCapacity ) Memory.stats[key] = this.sources[i].energy;
+    }
+    let key = "room." + this.name + ".hostileCreeps.count";
+    let cnt = this.getHostileCreeps().length;
+    if ( Memory.stats[key] !== undefined || cnt ) Memory.stats[key] = cnt;
 };
 
 // ########### SOURCES SECTION ############################################
 Room.prototype.initSources = function() {
     if (!this.memory.sources) this.memory.sources = {};
-    for (var source of this.find(FIND_SOURCES))
+    for (let source of this.find(FIND_SOURCES))
         if (!this.memory.sources[source.id])
             this.memory.sources[source.id] = {id: source.id};
     this.memory.hostileSpawnIds = [];
     this.memory.hostileSpawns = this.find(STRUCTURE_KEEPER_LAIR);
-    for (var i in this.memory.hostileSpawns) {
+    for (let i in this.memory.hostileSpawns) {
         this.memory.hostileSpawnIds[i] = this.memory.hostileSpawns[i].id;
     }
 }
@@ -158,31 +194,24 @@ Room.prototype.loadSources = function() {
     }
 
     this.hostileSpawns = [];
-    for (var i in this.memory.hostileSpawns) {
-        var i = this.memory.hostileSpawns[i].id;
+    for (let i in this.memory.hostileSpawns) {
+        let i = this.memory.hostileSpawns[i].id;
         this.hostileSpawns[i] = Game.getObjectById(hostileSpawnId);
     }
 };
 Room.prototype.initDynamicSources = function() {
     this.memory.sourcesSaveCount = 0;
     this.memory.sourceSpotCount = 0;
-    this.memory.sourceLinkCnt = 0;
-    for (var id in this.sources) {
+    for (let id in this.sources) {
         var source = this.sources[id];
         if (source instanceof Source) {
-            source.getMemory().isSave = (
+            source.memory.isSave = (
                     this.creepsHealer.length >= 4  * this.hostileSpawns.length
                     && this.creepsRanger.length >= 3 * this.hostileSpawns.length
-                ) || !source.getMemory().hasHostileSpawn;
-            if (source.getMemory().isSave) {
+                ) || !source.memory.hasHostileSpawn;
+            if (source.memory.isSave) {
                 this.memory.sourcesSaveCount ++;
                 this.memory.sourceSpotCount += source.getSpotsCnt();
-            }
-
-            var link = source.pos.findInRangeLink(2);
-            if (link[0] !== undefined) {
-                source.getMemory().linkId = link[0].id;
-                this.memory.sourceLinkCnt ++;
             }
         } else {
             delete this.sources[id];
@@ -245,10 +274,9 @@ Room.prototype.loadStructures = function() {
 };
 Room.prototype.linkAction = function() {
     if (this.storageLink instanceof Structure)
-        for (var i in this.sources) {
-            var linkId = this.sources[i].getMemory().linkId;
-            if (linkId) {
-                var link = Game.getObjectById(linkId);
+        for (let i in this.sources) {
+            let link = this.sources[i].link;
+            if ( link instanceof StructureLink ) {
                 if (link.isFull() && this.storageLink.isEmpty()) {
                     link.transferEnergy(this.storageLink);
                     break; // do not transfer from 2 links at the same time
@@ -257,21 +285,26 @@ Room.prototype.linkAction = function() {
         }
 };
 Room.prototype.towerAction = function () {
+    var damagedCreep = this.find(FIND_MY_CREEPS, {
+        filter: function(object) {return object !== this && object.hits < object.hitsMax;}
+    });
     let enemies = this.find(FIND_HOSTILE_CREEPS);
     var structuresNeedsRepair = this.find(FIND_STRUCTURES, {
         filter: function(i) { return i.needsRepair(); }
     });
     for (var i in this.towers) {
         if ( this.towers[i].energy > 0) {
-            if (enemies.length > 0 && enemies[0] instanceof Creep) {
+            if (damagedCreep.length > 0 && damagedCreep[0] instanceof Creep && damagedCreep[0].ticksToLive > 50) {
+                this.towers[i].heal(damagedCreep[0]);
+            } else if (enemies.length > 0 && enemies[0] instanceof Creep) {
                 this.towers[i].attack(enemies[0]);
-            } else if ( this.towers[i].energy > 500 && this.storage.store.energy > 10000) {
+            } else if ( this.towers[i].energy > 500 && (( this.storage instanceof StructureStorage && this.storage.store.energy > 10000 ) || ! (this.storage instanceof StructureStorage )) ) {
                 var structureLowest = undefined;
                 for (var j in structuresNeedsRepair) {
                     var structure = structuresNeedsRepair[j];
                     if ( structure instanceof Structure )
                         if ( structure instanceof StructureWall || structure instanceof StructureRampart ) {
-                            if (structure.hits < 1000000) {
+                            if (structure.hits < 200000) {
                                 if (structureLowest instanceof Structure) {
                                     if (structure.hits < structureLowest.hits) structureLowest = structure;
                                 } else {
@@ -342,7 +375,6 @@ Room.prototype.creepsRequired = function() {
         + this.getDefaultBuilderCount(); //harvester, upgrader, @TODO: builder/repairer
 };
 
-
 Room.prototype.creepsHarvesterCnt = function() {
     var cnt = 0;
     var tasks = this.getTasks();
@@ -400,55 +432,60 @@ Room.prototype.getCreepsUpgraderCnt = function() {
 
 // ########### SPAWN SECTION ############################################
 Room.prototype.spawnAction = function() {
-    for (var spawnId in this.spawns) {
-        var spawn = this.spawns[spawnId];
+    for (let spawn of this.spawns) {
         if (spawn.spawning) continue;
-
-        if ( this.creepsDefault.length >= this.creepsRequired()
-            && this.creepsHarvester.length < this.creepsHarvesterCnt()
-        ) {
-            spawn.spawnHarvester();
-        } else if (this.creepsDefault.length < this.creepsRequired()) {
+        if (this.creepsDefault.length < this.creepsRequired()) {
             spawn.spawnDefault();
-        } else if ( this.controllerRefill instanceof StructureStorage
-            && this.storageLink instanceof StructureLink
-            && this.creepsCarrierTiny.length < this.creepsCarrierTinyCnt()
-        ) {
-            spawn.spawnCarrierTiny();
-        } else if ( this.creepsCarrier.length < this.creepsCarrierCnt() ) {
-            spawn.spawnCarrier();
-        } else if ( this.creepsHealer.length < 0
-            && this.extensions.length >= 20
-            && this.energyAvailable >= this.energyCapacityAvailable
-        ) {
-            spawn.spawnHealer();
-        } else if ( this.creepsRanger.length < 1
-            && this.extensions.length >= 20
-            && this.energyAvailable >= this.energyCapacityAvailable
-        ) {
-            spawn.spawnRanger();
-        } else if ( this.creepsUpgrader.length < this.getCreepsUpgraderCnt()
-            || (this.isEnergyMax() && this.controllerRefill instanceof Structure
-            && this.creepsUpgrader.length < this.controllerRefill.getEnergyPercentage() * 5)
-        ) { // spawn another upgrader, because has to many energy
-            spawn.spawnUpgrader();
+            return;
+        }
+
+        let tasks = this.getTasks();
+        let creepName = false;
+        let task = false;
+        for ( let i of tasks.list ) {
+            task = tasks.collection[i];
+if (! (task instanceof CTask) || !task.valid() ) {Logger.logDebug(i);Logger.logDebug(task);}
+            if (
+                task.getQty() > task.getQtyAssigned()
+                && task.getCnt() > task.getAssignmentsCnt()
+            ) {
+                switch ( task.getType() ) {
+                    case 'TASK_HARVEST':        creepName = spawn.spawnHarvester(); break;
+                    case 'TASK_GATHER':         creepName = spawn.spawnCarrier(); break;
+                    case 'TASK_FILLSTORAGE':    creepName = spawn.spawnCarrierTiny(); break;
+                    case 'TASK_UPGRADE':        creepName = spawn.spawnUpgrader(); break;
+                    case 'TASK_GUARD':          creepName = spawn.spawnRanger(undefined, undefined, task.getQty()); break;
+                }
+                if ( creepName ) break;
+            }
+        }
+        if ( creepName && task ) {
+            task.assignmentCreate(Game.creeps[creepName]);
+            Game.creeps[creepName].taskAssign(task);
         } else {
-            // TODO: rework with task based spawner
-            var tasks = this.getTasks();
-            for ( var i in tasks.collection ) {
-                if ( tasks.collection[i].getType() === 'TASK_HARVEST_REMOTE' ) {
-                    if ( tasks.collection[i].getQty() > tasks.collection[i].getQtyAssigned() )
-                        var creepName = spawn.spawnHarvester();
-//                        task.assignmentCreate(Game.creeps[creepName]);
-//                        Game.creeps[creepName].taskAssign(task);
-                } else if ( tasks.collection[i].getType() === 'TASK_GATHER_REMOTE' ) {
-                    if ( tasks.collection[i].getQty() > tasks.collection[i].getQtyAssigned() )
-                        var creepName = spawn.spawnCarrier();
+            for ( var i of tasks.list ) {
+                task = tasks.collection[i];
+                if (
+                    task.getQty() > task.getQtyAssigned()
+                    && task.getCnt() > task.getAssignmentsCnt()
+                ) {
+                    switch ( task.getType() ) {
+                        case 'TASK_HARVEST_REMOTE': creepName = spawn.spawnHarvester(); break;
+                        case 'TASK_GATHER_REMOTE':  creepName = spawn.spawnCarrier(); break;
+                        case 'TASK_RESERVE_REMOTE': creepName = spawn.spawnClaim(undefined, undefined, task.getQty()); break;
+                        case 'TASK_GUARD_REMOTE':   creepName = spawn.spawnRanger(undefined, undefined, task.getQty()); break;
+                    }
+                    if ( creepName ) break;
                 }
             }
-            this.log('SPAWN: no creep is required');
+            if ( creepName && task ) {
+                task.assignmentCreate(Game.creeps[creepName]);
+                Game.creeps[creepName].taskAssign(task);
+            } else {
+                this.log('SPAWN: no creep is required');
+                break;
+            }
         }
-        break; // todo: multispawn problem quickfix
     }
 };
 
@@ -459,7 +496,7 @@ Room.prototype.hasEnergyCapacity = function(e) {
     return this.energyCapacityAvailable >= e;
 };
 Room.prototype.hasEnergyCapacitySave = function(e) {
-    return this.hasEnergy(800) || (this.hasEnergyCapacity(800) && this.hasBasicInfrastructure());
+    return this.hasEnergy(e) || (this.hasEnergyCapacity(e) && this.hasBasicInfrastructure());
 };
 Room.prototype.isEnergyMax = function(e) {
     return this.energyCapacityAvailable === this.energyAvailable;
@@ -472,7 +509,6 @@ Room.prototype.hasBasicInfrastructure = function(e) {
 Room.prototype.getHostileCreeps = function() {
     if (this.hostileCreeps === undefined) {
         var opts = {};
-        //opts.filter = function(object) { return object.owner.username !== 'NhanHo';}
         this.hostileCreeps = this.find(FIND_HOSTILE_CREEPS, opts);
         for (var i in this.hostileCreeps) {
             var c = this.hostileCreeps[i];

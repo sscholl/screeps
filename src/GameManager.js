@@ -61,6 +61,13 @@ class GameManager {
      *
      */
     run () {
+        if (Memory.stats === undefined) Memory.stats = {};
+        Memory.stats["Game.cpu.limit"] = Game.cpu.limit;
+        Memory.stats["Game.cpu.tickLimit"] = Game.cpu.tickLimit;
+        Memory.stats["Game.cpu.bucket"] = Game.cpu.bucket;
+        Memory.stats["Game.gcl.level"] = Game.gcl.level;
+        Memory.stats["Game.gcl.progress"] = Game.gcl.progress;
+        Memory.stats["Game.gcl.progressTotal"] = Game.gcl.progressTotal;
         this.garbageCollection();
     }
 
@@ -68,7 +75,7 @@ class GameManager {
      *
      */
     garbageCollection () {
-        if (Game.time % 1000 == 0) {
+        if (Game.time % 1 == 0) {
         	if (Memory.creeps)
                 _.difference(Object.keys(Memory.creeps),Object.keys(Game.creeps)).forEach(function(key) {delete Memory.creeps[key]});
         	if (Memory.flags)

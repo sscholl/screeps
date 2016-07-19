@@ -8,16 +8,14 @@ let GameManager         = require('GameManager');
 let CTask               = require('CTask');
 let CTasks              = require('CTasks');
 
-
 // before requires of prototype extensions
 Profiler._.init();
 Logger._.init();
 
-
 var includes = ['CMap', 'CSpawn', 'CStructure', 'CSource', 'CRoomPosition', 'CCreep', 'CCreepXGuard', 'CCreepXHealer', 'CRoom_Tasks', 'CRoom'];
 var modules = [];
 for (var i in includes) {
-   modules.push(require(includes[i]));
+    modules.push(require(includes[i]));
 }
 
 
@@ -36,9 +34,9 @@ module.exports.loop = function () {
 
     var time = Game.cpu.getUsed();
     Logger.functionEnter("LOAD TIME " + time);
-    Logger.log("Game.cpu.limit " + Game.cpu.limit);
-    Logger.log("Game.cpu.tickLimit " + Game.cpu.tickLimit);
-    Logger.log("Game.cpu.bucket " + Game.cpu.bucket);
+//    Logger.log("Game.cpu.limit " + Game.cpu.limit);
+//    Logger.log("Game.cpu.tickLimit " + Game.cpu.tickLimit);
+//    Logger.log("Game.cpu.bucket " + Game.cpu.bucket);
 
     GameManager._.run();
 
@@ -55,4 +53,5 @@ module.exports.loop = function () {
     Profiler._.finalize();
 
     Logger.functionExit("MAIN TIME ", Game.cpu.getUsed() - time);
+    Memory.stats["Game.timeUsed"] = Game.cpu.getUsed() - time;
 }

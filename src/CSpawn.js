@@ -6,7 +6,7 @@ let Logger = require('Logger');
 module.exports = function () {
     if ( Spawn._initDebug !== true ) {
         Spawn._initDebug = true;
-        var methods = ['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
+        var methods = [];//['spawn', 'spawnDefault', 'spawnHarvester', 'spawnUpgrader', 'spawnCarrier', 'spawnCarrierTiny', 'spawnHealer', 'spawnRanger'];
         for (var i in methods) {
             Profiler._.wrap('Spawn', Spawn, methods[i]);
             Logger._.wrap('Spawn', Spawn, methods[i]);
@@ -14,23 +14,26 @@ module.exports = function () {
     }
 }
 
-Spawn.prototype.spawn = function(body, bodyParts) {
-    var result = this.createCreep(bodyParts);
-    if(_.isString(result)) {
-        this.room.log('Spawning: ' + result + " with Body: " + bodyParts
-                + " / new sum: " + (this.room.creeps.length + 1));
-        if (body == 'BODY_RANGER') Memory.creeps[result].role = 'guard';
-        Memory.creeps[result].body = body;
-    } else {
-        if (result != ERR_BUSY)
-            this.room.log('Spawn error: ' + result
-                + ' while try to spawn ' + bodyParts);
+Spawn.prototype.spawn = function (body, bodyParts, name, memory) {
+    let r = null;
+    if ( ! name ) name = this.getRandomName();
+    if ( this.canCreateCreep(bodyParts, name) === OK ) {
+        r = this.createCreep(bodyParts, name, memory);
+        if(_.isString(r)) {
+            this.room.log('Spawning: ' + r + " with Body: " + bodyParts
+                    + " / new sum: " + (this.room.creeps.length + 1));
+            Memory.creeps[r].body = body;
+        } else {
+            this.room.log('Spawn error: ' + r
+                    + ' while try to spawn ' + body + ' with parts ' + JSON.stringify(bodyParts));
+            r = null;
+        }
     }
-    return result;
+    return r;
 }
 
-Spawn.prototype.spawnDefault = function() {
-    var bodyParts;
+Spawn.prototype.spawnDefault = function (name, memory) {
+    var bodyParts = [];
     if ( this.room.hasEnergy(750) ) {
         bodyParts = [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE];
     } else if ( this.room.hasEnergy(550) ) {
@@ -44,15 +47,11 @@ Spawn.prototype.spawnDefault = function() {
     } else {
         bodyParts = [WORK, CARRY, MOVE];
     }
-    this.spawn('BODY_DEFAULT', bodyParts);
-    var r = this.spawn('BODY_DEFAULT', bodyParts);
-    if (r === ERR_NOT_ENOUGH_ENERGY ) {
-        this.room.log("can't create default creep");
-    }
+    return this.spawn('BODY_DEFAULT', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnHarvester = function() {
-    var bodyParts;
+Spawn.prototype.spawnHarvester = function (name, memory) {
+    var bodyParts = [];
     if ( this.room.hasEnergyCapacitySave(800) ) {
         bodyParts = [ WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE ];
     } else if ( this.room.hasEnergyCapacitySave(600) ) {
@@ -68,18 +67,13 @@ Spawn.prototype.spawnHarvester = function() {
     } else {
         this.room.log("can't create harvester - not enough energy");
         if ( this.room.creepsDefault.length < 1 )
-            this.spawnDefault();
-        return;
+            return this.spawnDefault();
     }
-    var r = this.spawn('BODY_HARVESTER', bodyParts);
-    if ( r === ERR_NOT_ENOUGH_ENERGY ) {
-        this.room.log("can't create harvester - not enough energy");
-    }
-    return r;
+    return this.spawn('BODY_HARVESTER', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnCarrier = function() {
-    var bodyParts;
+Spawn.prototype.spawnCarrier = function (name, memory) {
+    var bodyParts = [];
     if ( false && this.room.hasEnergyCapacitySave(1300) )
         bodyParts = [
             CARRY, MOVE, CARRY, MOVE, CARRY, MOVE,  //300
@@ -108,32 +102,32 @@ Spawn.prototype.spawnCarrier = function() {
         ];
     else
         bodyParts = [ CARRY, MOVE, CARRY, MOVE, CARRY, MOVE ];  //300
-    this.spawn('BODY_CARRIER', bodyParts);
+    return this.spawn('BODY_CARRIER', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnCarrierTiny = function() {
+Spawn.prototype.spawnCarrierTiny = function (name, memory) {
     var bodyParts = [ CARRY, MOVE ];
-    this.spawn('BODY_CARRIER_TINY', bodyParts);
+    return this.spawn('BODY_CARRIER_TINY', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnUpgrader = function() {
-    var bodyParts;
-    if ( this.room.hasEnergyCapacitySave(2100) && this.room.getCreepsUpgraderCnt() > 3 ) {
+Spawn.prototype.spawnUpgrader = function (name, memory) {
+    var bodyParts = [];
+    if ( this.room.hasEnergyCapacitySave(2200) && this.room.creepsUpgrader.length > 2 ) {
         bodyParts = [
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
-            CARRY, MOVE //100
+            CARRY, MOVE, CARRY, MOVE //200
         ];
-    } else if ( this.room.hasEnergyCapacitySave(1600) && this.room.getCreepsUpgraderCnt() > 2 ) {
+    } else if ( this.room.hasEnergyCapacitySave(1700) && this.room.creepsUpgrader.length > 1 ) {
         bodyParts = [
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
-            CARRY, MOVE //100
+            CARRY, MOVE, CARRY, MOVE //200
         ];
-    } else if ( this.room.hasEnergyCapacitySave(1100) && this.room.getCreepsUpgraderCnt() > 1 ) {
+    } else if ( this.room.hasEnergyCapacitySave(1100) && this.room.creepsUpgrader.length > 0 ) {
         bodyParts = [
             WORK, WORK, WORK, WORK, WORK, //500
             WORK, WORK, WORK, WORK, WORK, //500
@@ -150,11 +144,11 @@ Spawn.prototype.spawnUpgrader = function() {
     } else {
         this.room.logError("can't create upgrader");
     }
-    this.spawn('BODY_UPGRADER', bodyParts);
+    return this.spawn('BODY_UPGRADER', bodyParts, name, memory);
 }
 
-Spawn.prototype.spawnHealer = function() {
-    var bodyParts;
+Spawn.prototype.spawnHealer = function (name, memory) {
+    var bodyParts = [];
     if (this.room.hasEnergyCapacitySave(1000)) {
         bodyParts = [
             HEAL, MOVE, HEAL, MOVE, HEAL, MOVE, HEAL, MOVE //1000
@@ -166,11 +160,11 @@ Spawn.prototype.spawnHealer = function() {
     } else {
         bodyParts = [MOVE, HEAL];
     }
-    this.spawn('BODY_HEALER', bodyParts);
-}
+    return this.spawn('BODY_HEALER', bodyParts, name, memory);
+};
 
-Spawn.prototype.spawnRanger = function() {
-    var bodyParts;
+Spawn.prototype.spawnRanger = function (name, memory) {
+    var bodyParts = [];
     if (false && this.room.hasEnergyCapacitySave(2300)) { // max: 2300
         bodyParts = [
             TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
@@ -207,8 +201,53 @@ Spawn.prototype.spawnRanger = function() {
         ]; // sum: 1300
     } else {
         bodyParts = [
-                RANGED_ATTACK, MOVE, TOUGH, MOVE  //300
+                TOUGH, MOVE, RANGED_ATTACK, MOVE  //300
         ];
     }
-    this.spawn('BODY_RANGER', bodyParts);
+    return this.spawn('BODY_RANGER', bodyParts, name, memory);
+}
+
+Spawn.prototype.spawnMelee = function (name, memory, cntAttack, cntThough = 0) {
+    var bodyParts = [];
+    this.room.log(cntAttack * 90 + cntAttack * 60);
+    if ( cntAttack && this.room.hasEnergyCapacitySave(cntAttack * 90 + cntAttack * 60) ) {
+        for (let i = 0; i < cntThough; ++ i )
+            bodyParts = bodyParts.concat([TOUGH, MOVE]);
+        for (let i = 0; i < cntAttack; ++ i )
+            bodyParts = bodyParts.concat([ATTACK, MOVE]);
+    } else {
+        if (this.room.hasEnergyCapacitySave(950)) { // max: 950
+            bodyParts = [
+                TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, TOUGH, MOVE, // 300
+                ATTACK, MOVE, //130
+                    ATTACK, MOVE, //130
+                    ATTACK, MOVE, //130
+                    ATTACK, MOVE, //130
+                    ATTACK, MOVE  //130
+            ];
+        } else {
+            bodyParts = [
+                    ATTACK, MOVE, ATTACK, MOVE  //190
+            ];
+        }
+    }
+    return this.spawn('BODY_MELEE', bodyParts, name, memory);
+}
+
+Spawn.prototype.spawnClaim = function (name, memory, qtyClaim) {
+    var bodyParts = [];
+    if ( this.room.hasEnergyCapacitySave(qtyClaim * 650) ) {
+        for (var i = 0; i < qtyClaim; ++ i )
+            bodyParts = bodyParts.concat([CLAIM, MOVE]);
+    } else if ( this.room.hasEnergyCapacitySave(650) ) {
+        bodyParts = [CLAIM, MOVE];
+    }
+    return this.spawn('BODY_CLAIM', bodyParts, name, memory);
+};
+
+Spawn.prototype.getRandomName = function () {
+    var chars = "abcdefghijklmnopqrstufwxyzABCDEFGHIJKLMNOPQRSTUFWXYZ1234567890";
+    var pwd = _.sample(chars, 6);
+    while ( Memory.creeps[pwd.join("")]) pwd = _.sample(chars, length || 6);
+    return pwd.join("");
 }

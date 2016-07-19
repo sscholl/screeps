@@ -162,3 +162,7 @@ RoomPosition.prototype.findClosestCreepFull = function (_bodyType) {
                 }
     });
 };
+
+RoomPosition.prototype.asString = function () {
+    return this.x + '/' + this.y + ' (' + this.roomName + ')';
+};

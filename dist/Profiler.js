@@ -30,12 +30,12 @@ var Profiler = class Profiler {
      * @this {Profiler}
      */
     constructor () {
-        Profiler.ACTIVE = true;
+        Profiler.ACTIVE = false;
         Profiler.MODULES = {
             ROOM:          true,
             ROOMPOSITION:   true,
         };
-        Profiler.REPORT_INTERVALL = 1000;
+        Profiler.REPORT_INTERVALL = 10;
         Profiler.REPORT_EMAIL = true;
     }
 
@@ -69,7 +69,7 @@ var Profiler = class Profiler {
      *
      */
     finalize () {
-        if (Profiler.ACTIVE && Game.time % Profiler.REPORT_INTERVALL === 0 && false)
+        if ( Profiler.ACTIVE && Game.time % Profiler.REPORT_INTERVALL === 0 )
             this.report();
     }
 
@@ -80,7 +80,7 @@ var Profiler = class Profiler {
      * @param {String} method name
      */
     wrap (className, c, method) {
-        if (Profiler.ACTIVE) {
+        if ( Profiler.ACTIVE ) {
             var timer = Memory.timer[className + '.' + method] || { usage: 0, count: 0 , average: null , percentage: null };
             Memory.timer[className + '.' + method] = timer;
 
@@ -115,10 +115,15 @@ var Profiler = class Profiler {
             var msgMail;
             for (var n in Memory.timer) {
                 var timer = Memory.timer[n];
-                timer.percentage = timer.average * 100 / sum;
-                msg = n + ': ' + timer.usage.toFixed(2) + ' s / ' + timer.count + ' = ' + timer.average.toFixed(2) + ' s ' + ' (' + timer.percentage.toFixed(2) + '%)';
-                msgMail += msg;
-                Logger.log(msg);
+                if ( timer.usage > 0 ) {
+                    timer.percentage = timer.average * 100 / sum;
+                    msg = n + ': ' + timer.usage.toFixed(2) + ' s / ' + timer.count + ' = ' + timer.average.toFixed(2) + ' s ' + ' (' + timer.percentage.toFixed(2) + '%)';
+                    msgMail += msg;
+                    Logger.log(msg);
+                    Memory.stats["Profiler." + n + '.usage'] = timer.usage;
+                    Memory.stats["Profiler." + n + '.count'] = timer.count;
+                    Memory.stats["Profiler." + n + '.average'] = timer.average;
+                }
             }
             Game.notify(msgMail, 1);
         }
